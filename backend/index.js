@@ -16,7 +16,27 @@ app.use(morgan('dev'));
 // Routes
 app.use('/api/products', require('./routes/productsRoute'));
 app.use('/api/sales', require('./routes/salesRoute'));
+app.use('/api/history', require('./routes/historyRoute'));
 
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    await db.query('SELECT 1');
+    res.status(200).json({
+      status: 'healthy',
+      message: 'Backend and database are connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      message: 'Database connection failed',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
 
 const PORT = process.env.PORT || 8000;
 app.get('/', (req, res) => {
