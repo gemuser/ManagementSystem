@@ -155,7 +155,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
@@ -194,7 +194,7 @@ const Dashboard = () => {
               <span className="font-medium">Activity History</span>
             </button>
           </div>
-        </div>
+        </div> */}
 
         {loading ? (
           <div className="flex items-center justify-center h-64">

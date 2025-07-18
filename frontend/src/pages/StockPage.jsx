@@ -789,9 +789,9 @@ const StockPage = () => {
                                   <div>
                                     <div className="text-lg font-bold text-gray-900">{product.available_stock || 0}</div>
                                     <div className="text-xs text-gray-500">available</div>
-                                    <div className="text-sm text-gray-600 mt-1">
+                                    {/* <div className="text-sm text-gray-600 mt-1">
                                       Total: {product.total_stock} units
-                                    </div>
+                                    </div> */}
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">

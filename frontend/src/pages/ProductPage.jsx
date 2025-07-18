@@ -705,7 +705,7 @@ const ProductPage = () => {
                             </span>
                             <div className="ml-2 text-sm text-gray-600">
                               <div>{product.available_stock || 0} available</div>
-                              <div className="text-xs text-gray-500">of {product.total_stock} total</div>
+                              {/* <div className="text-xs text-gray-500">of {product.total_stock} total</div> */}
                             </div>
                           </div>
                         </td>
