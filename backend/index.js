@@ -17,6 +17,7 @@ app.use(morgan('dev'));
 app.use('/api/products', require('./routes/productsRoute'));
 app.use('/api/sales', require('./routes/salesRoute'));
 app.use('/api/history', require('./routes/historyRoute'));
+app.use('/api/vat-bill', require('./routes/vatBillRoute'));
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

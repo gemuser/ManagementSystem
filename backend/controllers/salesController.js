@@ -27,7 +27,7 @@ const getSales = async (req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { invoice_no, product_id, quantity_sold } = req.body;
+    const { invoice_no, product_id, quantity_sold, sale_price } = req.body;
 
     // Validate inputs
     if (!invoice_no || !product_id || !quantity_sold) {
@@ -67,7 +67,8 @@ const createSales = async (req, res) => {
       });
     }
 
-    const price_each = product.price;
+    // Use custom sale price if provided, otherwise use product's default price
+    const price_each = sale_price ? parseFloat(sale_price) : product.price;
     const total_price = price_each * quantity_sold;
 
     // Insert into sales
