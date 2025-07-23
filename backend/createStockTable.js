@@ -21,7 +21,7 @@ async function createStockChangesTable() {
     await db.query(createTableQuery);
     console.log('✅ stock_changes table created successfully!');
     
-    // Close the connection
+    // Close connection
     process.exit(0);
   } catch (err) {
     console.error('❌ Error creating stock_changes table:', err);
