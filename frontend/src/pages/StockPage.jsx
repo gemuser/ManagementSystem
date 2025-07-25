@@ -9,13 +9,11 @@ import {
   List, 
   Folder, 
   AlertTriangle,
-  Filter,
   Plus,
   TrendingUp,
   Warehouse,
   BarChart3,
-  RefreshCw,
-  Grid3X3
+  RefreshCw
 } from 'lucide-react';
 
 const StockPage = () => {
@@ -27,12 +25,7 @@ const StockPage = () => {
   const [stockAction, setStockAction] = useState('');
   const [stockQuantity, setStockQuantity] = useState('');
   const [loading, setLoading] = useState(true);
-  const [searchFilters, setSearchFilters] = useState({
-    name: '',
-    hsCode: '',
-    category: '',
-    stockStatus: 'all'
-  });
+  const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' or 'list'
 
   useEffect(() => {
@@ -54,52 +47,21 @@ const StockPage = () => {
 
     let filtered = products;
 
-    // Filter by name
-    if (searchFilters.name.trim()) {
+    // Apply search filter
+    if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchFilters.name.toLowerCase())
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.hsCode?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    // Filter by HS code
-    if (searchFilters.hsCode.trim()) {
-      filtered = filtered.filter(product =>
-        product.hsCode && product.hsCode.toLowerCase().includes(searchFilters.hsCode.toLowerCase())
-      );
-    }
-
-    // Filter by category
-    if (searchFilters.category.trim()) {
-      filtered = filtered.filter(product =>
-        product.category.toLowerCase().includes(searchFilters.category.toLowerCase())
-      );
-    }
-
-    // Filter by stock status
-    if (searchFilters.stockStatus !== 'all') {
-      filtered = filtered.filter(product => {
-        const availableStock = parseInt(product.available_stock) || 0;
-        switch (searchFilters.stockStatus) {
-          case 'out_of_stock':
-            return availableStock === 0;
-          case 'low_stock':
-            return availableStock > 0 && availableStock < 10;
-          case 'medium_stock':
-            return availableStock >= 10 && availableStock < 50;
-          case 'high_stock':
-            return availableStock >= 50;
-          default:
-            return true;
-        }
-      });
     }
 
     setFilteredProducts(filtered);
-  }, [products, searchFilters]);
+  }, [products, searchTerm]);
 
   useEffect(() => {
     applyFilters();
-  }, [products, searchFilters, applyFilters]);
+  }, [products, searchTerm, applyFilters]);
 
   const fetchProducts = async () => {
     try {
@@ -134,12 +96,7 @@ const StockPage = () => {
   };
 
   const clearFilters = () => {
-    setSearchFilters({
-      name: '',
-      hsCode: '',
-      category: '',
-      stockStatus: 'all'
-    });
+    setSearchTerm('');
     setFilteredProducts(products); // Immediately reset filtered products to show all products
   };
 
@@ -395,91 +352,48 @@ const StockPage = () => {
           </div>
         )}
 
-        {/* Search and Filter Section */}
+        {/* Simple Search */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Search size={24} className="mr-3 text-indigo-600" />
-              <h2 className="text-xl font-semibold text-gray-900">Search & Filter Products</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Search Products</h2>
             </div>
-            <div className="flex items-center space-x-2">
-              <Filter size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-600">
-                {filteredProducts.length} of {products.length} products
-              </span>
-            </div>
+            <span className="text-sm text-gray-600">
+              {filteredProducts.length} of {products.length} products
+            </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Package size={14} className="inline mr-1" />
-                Search by Name
-              </label>
-              <input
-                type="text"
-                placeholder="Enter product name..."
-                value={searchFilters.name}
-                onChange={(e) => setSearchFilters({ ...searchFilters, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Grid3X3 size={14} className="inline mr-1" />
-                Search by HS Code
-              </label>
-              <input
-                type="text"
-                placeholder="Enter HS code..."
-                value={searchFilters.hsCode}
-                onChange={(e) => setSearchFilters({ ...searchFilters, hsCode: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <Folder size={14} className="inline mr-1" />
-                Search by Category
-              </label>
-              <input
-                type="text"
-                placeholder="Enter category..."
-                value={searchFilters.category}
-                onChange={(e) => setSearchFilters({ ...searchFilters, category: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                <BarChart3 size={14} className="inline mr-1" />
-                Stock Status
-              </label>
-              <select
-                value={searchFilters.stockStatus}
-                onChange={(e) => setSearchFilters({ ...searchFilters, stockStatus: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              >
-                <option value="all">All Products</option>
-                <option value="out_of_stock">🔴 Out of Stock (0)</option>
-                <option value="low_stock">🟡 Low Stock (1-9)</option>
-                <option value="medium_stock">🟢 Medium Stock (10-49)</option>
-                <option value="high_stock">✅ High Stock (50+)</option>
-              </select>
-            </div>
+          <div className="relative">
+            <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, category, or HS code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
           </div>
+          
+          {searchTerm && (
+            <div className="mt-3 flex justify-between items-center">
+              <span className="text-sm text-gray-600">
+                Found {filteredProducts.length} matching products
+              </span>
+              <button
+                onClick={clearFilters}
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Clear Search
+              </button>
+            </div>
+          )}
+        </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <button
-              onClick={clearFilters}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-all"
-            >
-              Clear All Filters
-            </button>
-
+        {/* View Mode Toggle */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">Inventory Display</h2>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-600">View Mode:</span>
@@ -845,3 +759,4 @@ const StockPage = () => {
 };
 
 export default StockPage;
+ 

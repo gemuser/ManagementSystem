@@ -48,12 +48,30 @@ const createProducts = async (req, res) => {
             return res.status(400).send({
                 success: false,
                 message: 'please provide all fields',
-
             });
         }
+
+        // Validate numeric fields
+        const parsedPrice = parseFloat(price);
+        const parsedStock = parseInt(total_stock);
+        
+        if (isNaN(parsedPrice) || parsedPrice <= 0) {
+            return res.status(400).send({
+                success: false,
+                message: 'Invalid price value',
+            });
+        }
+
+        if (isNaN(parsedStock) || parsedStock < 0) {
+            return res.status(400).send({
+                success: false,
+                message: 'Invalid stock value',
+            });
+        }
+
         await db.query(
             'INSERT INTO products (name, category, price, modelNo, hsCode, total_stock) VALUES (?,?,?,?,?,?)',
-            [name, category, price, modelNo, hsCode, total_stock]
+            [name, category, parsedPrice, modelNo, hsCode, parsedStock]
         );
         res.status(201).send({
             success: true,
@@ -98,6 +116,14 @@ const updateProducts = async (req, res) => {
 
         const old_stock = parseInt(currentProduct.total_stock);
         const new_stock = parseInt(total_stock);
+
+        // Validate stock values
+        if (isNaN(old_stock) || isNaN(new_stock) || new_stock < 0) {
+            return res.status(400).send({
+                success: false,
+                message: 'Invalid stock value provided'
+            });
+        }
 
         // Update the product
         const data = await db.query(

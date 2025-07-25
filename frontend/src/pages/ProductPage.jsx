@@ -9,7 +9,6 @@ import {
   List, 
   Edit, 
   Search, 
-  Filter,
   Eye,
   AlertCircle,
   CheckCircle,
@@ -25,8 +24,6 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [stockFilter, setStockFilter] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -36,10 +33,7 @@ const ProductPage = () => {
     total_stock: ''
   });
 
-  // Get unique categories for filter
-  const uniqueCategories = [...new Set(products.map(p => p.category))].filter(Boolean);
-
-  // Filter products based on search and filters
+  // Filter products based on search
   useEffect(() => {
     let filtered = products;
 
@@ -53,30 +47,8 @@ const ProductPage = () => {
       );
     }
 
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(product => product.category === categoryFilter);
-    }
-
-    // Stock filter
-    if (stockFilter !== 'all') {
-      filtered = filtered.filter(product => {
-        const availableStock = parseInt(product.available_stock) || 0;
-        switch (stockFilter) {
-          case 'out_of_stock':
-            return availableStock === 0;
-          case 'low_stock':
-            return availableStock > 0 && availableStock < 10;
-          case 'in_stock':
-            return availableStock >= 10;
-          default:
-            return true;
-        }
-      });
-    }
-
     setFilteredProducts(filtered);
-  }, [products, searchTerm, categoryFilter, stockFilter]);
+  }, [products, searchTerm]);
 
   // Fetch products
   const getProducts = async () => {
@@ -404,7 +376,7 @@ const ProductPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Categories</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">{uniqueCategories.length}</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{[...new Set(products.map(p => p.category))].filter(Boolean).length}</p>
               </div>
               <div className="p-3 rounded-full bg-green-100">
                 <Tag size={24} className="text-green-600" />
@@ -540,75 +512,23 @@ const ProductPage = () => {
           </div>
         )}
 
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
-          <div className="flex items-center mb-4">
-            <Search size={20} className="mr-2 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Search & Filter Products</h3>
+        {/* Simple Search */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="relative">
+            <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search products..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Products</label>
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by name, category, model, or HS code..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              >
-                <option value="all">All Categories</option>
-                {uniqueCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Stock Status</label>
-              <select
-                value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              >
-                <option value="all">All Stock Levels</option>
-                <option value="in_stock">In Stock (10+)</option>
-                <option value="low_stock">Low Stock (1-9)</option>
-                <option value="out_of_stock">Out of Stock (0)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center text-sm text-gray-600">
-              <Filter size={16} className="mr-1" />
+          {searchTerm && (
+            <div className="mt-2 text-sm text-gray-600">
               Showing {filteredProducts.length} of {products.length} products
             </div>
-            {(searchTerm || categoryFilter !== 'all' || stockFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setCategoryFilter('all');
-                  setStockFilter('all');
-                }}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Products List */}

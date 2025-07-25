@@ -8,7 +8,9 @@ import {
   Warehouse, 
   ShoppingCart, 
   History,
-  Building2
+  Building2,
+  BookOpen,
+  ShoppingBag
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -36,6 +38,18 @@ const Sidebar = () => {
       path: "/sales", 
       icon: ShoppingCart,
       description: "Create Sales"
+    },
+    { 
+      name: "Purchases", 
+      path: "/purchases", 
+      icon: ShoppingBag,
+      description: "Purchase Records"
+    },
+    { 
+      name: "Day Book", 
+      path: "/daybook", 
+      icon: BookOpen,
+      description: "Daily Records"
     },
     { 
       name: "Sales History", 

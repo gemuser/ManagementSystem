@@ -2,27 +2,23 @@ const express = require('express');
 const db = require('../database/db');
 
 const getSales = async (req, res) => {
-    const data = await db.query('SELECT * FROM sales');
-    try{
-    if(!data || data[0].length === 0){
-        return res.status(404).send({
+    try {
+        const [data] = await db.query('SELECT * FROM sales ORDER BY sale_date DESC');
+        
+        // Return empty array if no sales found - this is normal for new shops
+        res.status(200).send({
+            success: true,
+            message: data.length === 0 ? 'No sales found' : 'Sales retrieved successfully',
+            data: data
+        });
+    } catch(err){
+        console.log(err);
+        res.status(500).send({
             success: false,
-            message: 'No sales found'
+            message: 'Error in getting sales',
+            err
         });
     }
-    res.status(200).send({
-        success: true,
-        message: 'Sales retrieved successfully',
-        data: data[0]
-    });
-}catch(err){
-    console.log(err);
-    res.status(500).send({
-        success: false,
-        message: 'Error in getting sales',
-        err
-    });
-}
 };
 
 const createSales = async (req, res) => {
@@ -68,7 +64,17 @@ const createSales = async (req, res) => {
     }
 
     // Use custom sale price if provided, otherwise use product's default price
-    const price_each = sale_price ? parseFloat(sale_price) : product.price;
+    let price_each = product.price;
+    if (sale_price) {
+      const parsedPrice = parseFloat(sale_price);
+      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+        return res.status(400).send({
+          success: false,
+          message: 'Invalid sale price provided',
+        });
+      }
+      price_each = parsedPrice;
+    }
     const total_price = price_each * quantity_sold;
 
     // Insert into sales
