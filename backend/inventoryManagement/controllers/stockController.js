@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const db = require('../../database/db');
 
 // Function to log stock changes
 const logStockChange = async (product_id, old_stock, new_stock, change_type = 'manual_update', notes = '') => {

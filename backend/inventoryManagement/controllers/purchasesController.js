@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const db = require('../../database/db');
 
 // Get all purchases
 const getAllPurchases = async (req, res) => {

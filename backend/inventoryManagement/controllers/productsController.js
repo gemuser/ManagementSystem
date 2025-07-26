@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const db = require('../../database/db');
 const { logStockChange } = require('./stockController');
 
 const getProducts = async (req, res) => {

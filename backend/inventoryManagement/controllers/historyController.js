@@ -1,5 +1,5 @@
 const express = require('express');
-const db = require('../database/db');
+const db = require('../../database/db');
 
 const getActivityHistory = async (req, res) => {
   try {
