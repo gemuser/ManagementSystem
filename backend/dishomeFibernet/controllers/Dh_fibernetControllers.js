@@ -25,22 +25,59 @@ const getCustomers = async (req, res) => {
     }
 };
 
+// ===================== GET COMBO CUSTOMERS WITH DETAILS =====================
+const getCustomersWithDetails = async (req, res) => {
+    try {
+        const data = await db.query(`
+            SELECT 
+                dfc.*,
+                d.name as dishhome_customer_name,
+                d.phoneNumber as dishhome_phone,
+                d.address as dishhome_address,
+                d.package as dishhome_package,
+                d.casId as dishhome_casId
+            FROM dishhome_fibernet_combo dfc
+            LEFT JOIN dishhome d ON dfc.dishhomeId = d.customerId
+        `);
+        
+        if (!data || data[0].length === 0) {
+            return res.status(404).send({
+                success: false,
+                message: 'No combo customers found'
+            });
+        }
+        
+        res.status(200).send({
+            success: true,
+            message: 'Combo customers with details retrieved successfully',
+            data: data[0]
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({
+            success: false,
+            message: "Error in getting combo customers with details",
+            err: err.message
+        });
+    }
+};
+
 // ===================== CREATE COMBO CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-        const { dishhomeId, fibernetId, totalPrice, status } = req.body;
+        const { dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId } = req.body;
 
-        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined) {
+        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category || !phoneNumber) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide dishhomeId, fibernetId, totalPrice, and status'
+                message: 'Please provide dishhomeId, fibernetId, totalPrice, status, category, and phoneNumber. casId is optional.'
             });
         }
 
         await db.query(
-            `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status)
-             VALUES (?, ?, ?, ?)`,
-            [dishhomeId, fibernetId, totalPrice, status]
+            `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId || null]
         );
 
         res.status(201).send({
@@ -62,20 +99,20 @@ const createCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
     try {
         const comboId = req.params.id;
-        const { dishhomeId, fibernetId, totalPrice, status } = req.body;
+        const { dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId } = req.body;
 
-        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined) {
+        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category || !phoneNumber) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide dishhomeId, fibernetId, totalPrice, and status'
+                message: 'Please provide dishhomeId, fibernetId, totalPrice, status, category, and phoneNumber. casId is optional.'
             });
         }
 
         const result = await db.query(
             `UPDATE dishhome_fibernet_combo
-             SET dishhomeId = ?, fibernetId = ?, totalPrice = ?, status = ?
+             SET dishhomeId = ?, fibernetId = ?, totalPrice = ?, status = ?, category = ?, phoneNumber = ?, casId = ?
              WHERE comboId = ?`,
-            [dishhomeId, fibernetId, totalPrice, status, comboId]
+            [dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId || null, comboId]
         );
 
         if (result[0].affectedRows === 0) {
@@ -130,6 +167,7 @@ const deleteCustomer = async (req, res) => {
 
 module.exports = {
     getCustomers,
+    getCustomersWithDetails,
     createCustomer,
     updateCustomer,
     deleteCustomer

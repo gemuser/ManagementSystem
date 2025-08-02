@@ -28,12 +28,12 @@ const getCustomers = async (req, res) => {
 // ===================== CREATE CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-        const { name, phoneNumber, status, package: packageType, address, price, month } = req.body;
+        const { name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
 
-        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month) {
+        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month || !casId) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide all fields: name, phoneNumber, status, package, address, price, month',
+                message: 'Please provide all fields: name, phoneNumber, status, package, address, price, month, casId',
             });
         }
 
@@ -46,8 +46,8 @@ const createCustomer = async (req, res) => {
         }
 
         await db.query(
-            'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month) VALUES (?,?,?,?,?,?,?)',
-            [name, phoneNumber, status, packageType, address, price, month]
+            'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?)',
+            [name, phoneNumber, status, packageType, address, price, month, casId]
         );
 
         res.status(201).send({
@@ -68,9 +68,9 @@ const createCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
     try {
         const id = req.params.id;
-        const { name, phoneNumber, status, package: packageType, address, price, month } = req.body;
+        const { name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
 
-        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month) {
+        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month || !casId) {
             return res.status(400).send({
                 success: false,
                 message: 'Please provide all fields',
@@ -78,8 +78,8 @@ const updateCustomer = async (req, res) => {
         }
 
         const data = await db.query(
-            'UPDATE dishhome SET name = ?, phoneNumber = ?, status = ?, package = ?, address = ?, price = ?, month = ? WHERE customerId = ?',
-            [name, phoneNumber, status, packageType, address, price, month, id]
+            'UPDATE dishhome SET name = ?, phoneNumber = ?, status = ?, package = ?, address = ?, price = ?, month = ?, casId = ? WHERE customerId = ?',
+            [name, phoneNumber, status, packageType, address, price, month, casId, id]
         );
 
         if (data[0].affectedRows === 0) {
