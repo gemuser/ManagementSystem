@@ -33,8 +33,10 @@ CREATE TABLE `dishhome` (
   `address` varchar(200) NOT NULL,
   `price` int NOT NULL,
   `month` int NOT NULL,
-  PRIMARY KEY (`customerId`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `casId` varchar(45) NOT NULL,
+  PRIMARY KEY (`customerId`),
+  UNIQUE KEY `casId_UNIQUE` (`casId`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43,7 +45,7 @@ CREATE TABLE `dishhome` (
 
 LOCK TABLES `dishhome` WRITE;
 /*!40000 ALTER TABLE `dishhome` DISABLE KEYS */;
-INSERT INTO `dishhome` VALUES (2,'Ashish Pokhrel','9800000001',1,'Gold Plan','Biratnagar',1500,1);
+INSERT INTO `dishhome` VALUES (2,'Ashish Pokhrel','9800000001',1,'Gold Plan','Biratnagar',1500,1,''),(3,'John Doe Updated','9876543211',1,'HD Premium Plus','456 Updated St',1800,2,'CAS001-UPDATED');
 /*!40000 ALTER TABLE `dishhome` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -61,12 +63,15 @@ CREATE TABLE `dishhome_fibernet_combo` (
   `totalPrice` int NOT NULL,
   `status` tinyint(1) NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `category` varchar(45) NOT NULL,
+  `phoneNumber` varchar(15) NOT NULL,
+  `casId` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`comboId`),
   KEY `dishhomeId` (`dishhomeId`),
   KEY `fibernetId` (`fibernetId`),
   CONSTRAINT `dishhome_fibernet_combo_ibfk_1` FOREIGN KEY (`dishhomeId`) REFERENCES `dishhome` (`customerId`) ON DELETE CASCADE,
   CONSTRAINT `dishhome_fibernet_combo_ibfk_2` FOREIGN KEY (`fibernetId`) REFERENCES `fibernet` (`customerId`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -75,6 +80,7 @@ CREATE TABLE `dishhome_fibernet_combo` (
 
 LOCK TABLES `dishhome_fibernet_combo` WRITE;
 /*!40000 ALTER TABLE `dishhome_fibernet_combo` DISABLE KEYS */;
+INSERT INTO `dishhome_fibernet_combo` VALUES (6,2,1,2900,1,'2025-08-02 17:02:55','Premium Updated Again','',NULL),(7,3,1,3000,1,'2025-08-02 17:03:17','Enterprise Package','',NULL),(8,2,1,3500,1,'2025-08-02 17:07:43','Premium Plus','',NULL);
 /*!40000 ALTER TABLE `dishhome_fibernet_combo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -207,4 +213,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-26 21:41:39
+-- Dump completed on 2025-08-02 23:18:39
