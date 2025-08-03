@@ -50,12 +50,15 @@ function Login() {
         return;
       }
 
-      // Make login request
-      const response = await axios.post('/auth/login', formData);
+      // Make login request with rememberMe option
+      const response = await axios.post('/auth/login', {
+        ...formData,
+        rememberMe
+      });
       
       if (response.data.success) {
         // Use AuthContext login method
-        login(response.data.user, response.data.token);
+        login(response.data.user, response.data.token, rememberMe);
         
         // Navigate to the return URL or dashboard
         navigate(from, { replace: true });
@@ -194,7 +197,7 @@ function Login() {
                   className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
                 <label htmlFor="remember-me" className="ml-2 text-sm text-gray-700">
-                  Remember me
+                  Remember me for 30 days
                 </label>
               </div>
               <div className="text-sm">
@@ -203,6 +206,13 @@ function Login() {
                 </a>
               </div>
             </div>
+
+            {/* Remember Me Info */}
+            {rememberMe && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs">
+                <span className="font-medium">✓ Extended Session:</span> You'll stay logged in for 30 days instead of 1 hour
+              </div>
+            )}
 
             {/* Submit Button */}
             <div>

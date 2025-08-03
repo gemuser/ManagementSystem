@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   // Function to check token validity with backend
   const checkTokenValidity = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       if (!token) {
         logout();
         return false;
@@ -61,8 +61,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in on app start
-    const token = localStorage.getItem('authToken');
-    const userInfo = localStorage.getItem('userInfo');
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    const userInfo = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
+    const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
     if (token && userInfo) {
       try {
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }) => {
 
     // Check token validity every 5 minutes
     const interval = setInterval(() => {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       if (token && isTokenExpired(token)) {
         console.log('Token expired during session');
         logout();
@@ -106,11 +107,27 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  const login = (userData, token) => {
-    // Store token with timestamp
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('userInfo', JSON.stringify(userData));
-    localStorage.setItem('loginTime', Date.now().toString());
+  const login = (userData, token, rememberMe = false) => {
+    // Store token based on rememberMe preference
+    if (rememberMe) {
+      // Store in localStorage for persistent login
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      localStorage.setItem('loginTime', Date.now().toString());
+      localStorage.setItem('rememberMe', 'true');
+      // Clear sessionStorage to avoid conflicts
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('userInfo');
+    } else {
+      // Store in sessionStorage for session-only login
+      sessionStorage.setItem('authToken', token);
+      sessionStorage.setItem('userInfo', JSON.stringify(userData));
+      sessionStorage.setItem('loginTime', Date.now().toString());
+      // Clear localStorage to avoid conflicts
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('rememberMe');
+    }
     
     setUser(userData);
     setIsAuthenticated(true);
@@ -118,9 +135,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear both localStorage and sessionStorage
     localStorage.removeItem('authToken');
     localStorage.removeItem('userInfo');
     localStorage.removeItem('loginTime');
+    localStorage.removeItem('rememberMe');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('userInfo');
+    sessionStorage.removeItem('loginTime');
+    
     setUser(null);
     setIsAuthenticated(false);
     delete axios.defaults.headers.common['Authorization'];

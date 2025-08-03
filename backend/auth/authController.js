@@ -15,7 +15,7 @@ const users = [
 // ===================== LOGIN =====================
 const login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, rememberMe } = req.body;
 
         // Validate input
         if (!username || !password) {
@@ -42,15 +42,19 @@ const login = async (req, res) => {
             });
         }
 
+        // Set token expiration based on rememberMe option
+        const tokenExpiration = rememberMe ? '30d' : '1h'; // 30 days if remember me, 1 hour otherwise
+
         // Generate JWT token
         const token = jwt.sign(
             { 
                 id: user.id, 
                 username: user.username, 
-                role: user.role 
+                role: user.role,
+                rememberMe: rememberMe || false
             },
             process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '1h' }
+            { expiresIn: tokenExpiration }
         );
 
         // Send response
@@ -58,6 +62,8 @@ const login = async (req, res) => {
             success: true,
             message: 'Login successful',
             token,
+            expiresIn: tokenExpiration,
+            rememberMe: rememberMe || false,
             user: {
                 id: user.id,
                 username: user.username,
@@ -141,21 +147,27 @@ const refreshToken = async (req, res) => {
             });
         }
 
+        // Use the same expiration as the original token if rememberMe was set
+        const tokenExpiration = decoded.rememberMe ? '30d' : '1h';
+
         // Generate new token with fresh expiration
         const newToken = jwt.sign(
             { 
                 id: user.id, 
                 username: user.username, 
-                role: user.role 
+                role: user.role,
+                rememberMe: decoded.rememberMe || false
             },
             process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '1h' }
+            { expiresIn: tokenExpiration }
         );
 
         res.status(200).json({
             success: true,
             message: 'Token refreshed successfully',
             token: newToken,
+            expiresIn: tokenExpiration,
+            rememberMe: decoded.rememberMe || false,
             user: {
                 id: user.id,
                 username: user.username,
