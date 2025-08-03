@@ -65,15 +65,9 @@ const getCustomersWithDetails = async (req, res) => {
 // ===================== CREATE COMBO CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-<<<<<<< HEAD
-        const { dishhomeId, fibernetId, totalPrice, status,category } = req.body;
-
-        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category) {
-=======
         const { dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId } = req.body;
 
         if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category || !phoneNumber) {
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
             return res.status(400).send({
                 success: false,
                 message: 'Please provide dishhomeId, fibernetId, totalPrice, status, category, and phoneNumber. casId is optional.'
@@ -81,15 +75,9 @@ const createCustomer = async (req, res) => {
         }
 
         await db.query(
-<<<<<<< HEAD
-            `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status, category)
-             VALUES (?, ?, ?, ?)`,
-            [dishhomeId, fibernetId, totalPrice, status]
-=======
             `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId || null]
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
         );
 
         res.status(201).send({
@@ -111,20 +99,12 @@ const createCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
     try {
         const comboId = req.params.id;
-<<<<<<< HEAD
-        const { dishhomeId, fibernetId, totalPrice, status, category } = req.body;
-=======
         const { dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId } = req.body;
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
 
         if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category || !phoneNumber) {
             return res.status(400).send({
                 success: false,
-<<<<<<< HEAD
-                message: 'Please provide dishhomeId, fibernetId, totalPrice, and status, category'
-=======
                 message: 'Please provide dishhomeId, fibernetId, totalPrice, status, category, and phoneNumber. casId is optional.'
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
             });
         }
 
@@ -132,11 +112,7 @@ const updateCustomer = async (req, res) => {
             `UPDATE dishhome_fibernet_combo
              SET dishhomeId = ?, fibernetId = ?, totalPrice = ?, status = ?, category = ?, phoneNumber = ?, casId = ?
              WHERE comboId = ?`,
-<<<<<<< HEAD
-            [dishhomeId, fibernetId, totalPrice, status, comboId, category]
-=======
             [dishhomeId, fibernetId, totalPrice, status, category, phoneNumber, casId || null, comboId]
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
         );
 
         if (result[0].affectedRows === 0) {

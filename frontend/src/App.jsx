@@ -19,7 +19,6 @@ import React from 'react';
 
 function App() {
   return (
-<<<<<<< HEAD
     <Router>
       <Routes>
         {/* Landing Page */}
@@ -58,56 +57,6 @@ function App() {
         <Route path="/daybook" element={<DayBook />} />
       </Routes>
     </Router>
-=======
-    <AuthProvider>
-      <Router>
-        <SessionTimeoutWarning />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/products" element={
-            <ProtectedRoute>
-              <ProductPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/stock" element={
-            <ProtectedRoute>
-              <StockPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/sales" element={
-            <ProtectedRoute>
-              <SalesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/purchases" element={
-            <ProtectedRoute>
-              <PurchasePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/sales-history" element={
-            <ProtectedRoute>
-              <SalesHistory />
-            </ProtectedRoute>
-          } />
-          <Route path="/history" element={
-            <ProtectedRoute>
-              <HistoryPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/daybook" element={
-            <ProtectedRoute>
-              <DayBook />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </Router>
-    </AuthProvider>
->>>>>>> 839d685f703cc5427382b6e8b94102ef22f44257
   );
 }
 

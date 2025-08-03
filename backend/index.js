@@ -35,9 +35,9 @@ app.use('/api/dishhome', require('./dishomeFibernet/routes/dishhomeRoutes'));
 app.use('/api/fibernet', require('./dishomeFibernet/routes/fibernetRoutes'));
 app.use('/api/Dhfibernet', require('./dishomeFibernet/routes/dishhome_fibernetRoutes'));
 
-// Schema update endpoint
-const { updateComboSchema } = require('./database/schemaController');
-app.post('/api/schema/update-combo', updateComboSchema);
+// Schema update endpoint (temporarily disabled)
+// const { updateComboSchema } = require('./database/schemaController');
+// app.post('/api/schema/update-combo', updateComboSchema);
 
 
 // Health check endpoint
