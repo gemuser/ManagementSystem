@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
+import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
@@ -8,7 +9,6 @@ import {
   Package, 
   Plus, 
   Receipt,
-  DollarSign,
   ShoppingBag,
   Trash2,
   CheckCircle,
@@ -376,7 +376,7 @@ const SalesPage = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -436,7 +436,7 @@ const SalesPage = () => {
                 <p className="text-2xl font-bold text-green-600 mt-1">Rs. {calculateCartTotal().toFixed(0)}</p>
               </div>
               <div className="p-3 rounded-full bg-green-100">
-                <DollarSign size={24} className="text-green-600" />
+                <RsIcon size={24} className="text-green-600" />
               </div>
             </div>
           </div>
@@ -545,7 +545,7 @@ const SalesPage = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <DollarSign size={14} className="inline mr-1" />
+                    <RsIcon size={14} className="inline mr-1" />
                     Price Range
                   </label>
                   <select
@@ -615,7 +615,7 @@ const SalesPage = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <DollarSign size={14} className="inline mr-1" />
+                    <RsIcon size={14} className="inline mr-1" />
                     Sale Price
                   </label>
                   <input

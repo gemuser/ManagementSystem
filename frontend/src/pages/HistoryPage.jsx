@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
   History, 
@@ -254,7 +254,7 @@ const HistoryPage = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">

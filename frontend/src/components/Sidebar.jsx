@@ -10,7 +10,11 @@ import {
   History,
   Building2,
   BookOpen,
-  ShoppingBag
+  ShoppingBag,
+  Tv,
+  Wifi,
+  Package2,
+  Users
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -65,6 +69,33 @@ const Sidebar = () => {
     },
   ];
 
+  const fibernetLinks = [
+    { 
+      name: "Fibernet Dashboard", 
+      path: "/fibernet-dashboard", 
+      icon: Users,
+      description: "Services Overview"
+    },
+    { 
+      name: "Dishhome", 
+      path: "/dishhome", 
+      icon: Tv,
+      description: "TV Services"
+    },
+    { 
+      name: "Fibernet", 
+      path: "/fibernet", 
+      icon: Wifi,
+      description: "Internet Services"
+    },
+    { 
+      name: "Combo Packages", 
+      path: "/combo", 
+      icon: Package2,
+      description: "Combined Services"
+    },
+  ];
+
   return (
     <div className="fixed left-0 top-0 h-full w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl flex flex-col z-40">
       {/* Header Section */}
@@ -83,32 +114,71 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 px-4 py-6">
-        <div className="space-y-2">
-          {links.map((link, index) => {
-            const IconComponent = link.icon;
-            return (
-              <NavLink
-                key={index}
-                to={link.path}
-                className={({ isActive }) =>
-                  `group flex items-center px-4 py-3 rounded-xl transition-all duration-200 ease-in-out ${
-                    isActive 
-                      ? "bg-blue-600 shadow-lg text-white transform scale-105" 
-                      : "text-slate-300 hover:bg-slate-700/50 hover:text-white hover:transform hover:scale-102"
-                  }`
-                }
-              >
-                <div className={`p-2 rounded-lg mr-3 transition-colors bg-slate-700 group-hover:bg-slate-600`}>
-                  <IconComponent size={20} />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{link.name}</div>
-                  <div className="text-xs opacity-75 mt-0.5">{link.description}</div>
-                </div>
-              </NavLink>
-            );
-          })}
+      <nav className="flex-1 px-4 py-6 overflow-y-auto">
+        {/* Inventory Management Section */}
+        <div className="mb-6">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">
+            Inventory Management
+          </h3>
+          <div className="space-y-2">
+            {links.map((link, index) => {
+              const IconComponent = link.icon;
+              return (
+                <NavLink
+                  key={index}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `group flex items-center px-4 py-3 rounded-xl transition-all duration-200 ease-in-out ${
+                      isActive 
+                        ? "bg-blue-600 shadow-lg text-white transform scale-105" 
+                        : "text-slate-300 hover:bg-slate-700/50 hover:text-white hover:transform hover:scale-102"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors bg-slate-700 group-hover:bg-slate-600`}>
+                    <IconComponent size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{link.name}</div>
+                    <div className="text-xs opacity-75 mt-0.5">{link.description}</div>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Fibernet Services Section */}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-4">
+            Fibernet Services
+          </h3>
+          <div className="space-y-2">
+            {fibernetLinks.map((link, index) => {
+              const IconComponent = link.icon;
+              return (
+                <NavLink
+                  key={`fibernet-${index}`}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `group flex items-center px-4 py-3 rounded-xl transition-all duration-200 ease-in-out ${
+                      isActive 
+                        ? "bg-green-600 shadow-lg text-white transform scale-105" 
+                        : "text-slate-300 hover:bg-slate-700/50 hover:text-white hover:transform hover:scale-102"
+                    }`
+                  }
+                >
+                  <div className={`p-2 rounded-lg mr-3 transition-colors bg-slate-700 group-hover:bg-slate-600`}>
+                    <IconComponent size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{link.name}</div>
+                    <div className="text-xs opacity-75 mt-0.5">{link.description}</div>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
         </div>
       </nav>
       

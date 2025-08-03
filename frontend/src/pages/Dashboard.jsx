@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
+import RsIcon from '../components/RsIcon';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
   Package, 
   ShoppingCart, 
-  DollarSign, 
   AlertTriangle, 
   TrendingUp,
   Calendar,
@@ -93,7 +93,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex">
-        <Sidebar />
+        <DHISidebar />
         <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -106,7 +106,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         
         {/* Simple Header */}
@@ -120,28 +120,28 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
-              onClick={() => navigate('/sales')}
+              onClick={() => navigate('/dhi/sales')}
               className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-all"
             >
               <ShoppingCart size={20} className="mr-2" />
               <span className="font-medium">New Sale</span>
             </button>
             <button
-              onClick={() => navigate('/products')}
+              onClick={() => navigate('/dhi/products')}
               className="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-all"
             >
               <Package size={20} className="mr-2" />
               <span className="font-medium">Products</span>
             </button>
             <button
-              onClick={() => navigate('/stock')}
+              onClick={() => navigate('/dhi/stock')}
               className="flex items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all"
             >
               <AlertTriangle size={20} className="mr-2" />
               <span className="font-medium">Stock</span>
             </button>
             <button
-              onClick={() => navigate('/sales-history')}
+              onClick={() => navigate('/dhi/sales-history')}
               className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-all"
             >
               <TrendingUp size={20} className="mr-2" />
@@ -174,7 +174,7 @@ const Dashboard = () => {
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <DollarSign size={24} className="text-purple-600 mr-3" />
+              <RsIcon size={24} className="text-purple-600 mr-3" />
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">Rs. {stats.totalRevenue.toFixed(2)}</p>

@@ -28,9 +28,9 @@ const getCustomers = async (req, res) => {
 // ===================== CREATE COMBO CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-        const { dishhomeId, fibernetId, totalPrice, status } = req.body;
+        const { dishhomeId, fibernetId, totalPrice, status,category } = req.body;
 
-        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined) {
+        if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined || !category) {
             return res.status(400).send({
                 success: false,
                 message: 'Please provide dishhomeId, fibernetId, totalPrice, and status'
@@ -38,7 +38,7 @@ const createCustomer = async (req, res) => {
         }
 
         await db.query(
-            `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status)
+            `INSERT INTO dishhome_fibernet_combo (dishhomeId, fibernetId, totalPrice, status, category)
              VALUES (?, ?, ?, ?)`,
             [dishhomeId, fibernetId, totalPrice, status]
         );
@@ -62,12 +62,12 @@ const createCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
     try {
         const comboId = req.params.id;
-        const { dishhomeId, fibernetId, totalPrice, status } = req.body;
+        const { dishhomeId, fibernetId, totalPrice, status, category } = req.body;
 
         if (!dishhomeId || !fibernetId || totalPrice === undefined || status === undefined) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide dishhomeId, fibernetId, totalPrice, and status'
+                message: 'Please provide dishhomeId, fibernetId, totalPrice, and status, category'
             });
         }
 
@@ -75,7 +75,7 @@ const updateCustomer = async (req, res) => {
             `UPDATE dishhome_fibernet_combo
              SET dishhomeId = ?, fibernetId = ?, totalPrice = ?, status = ?
              WHERE comboId = ?`,
-            [dishhomeId, fibernetId, totalPrice, status, comboId]
+            [dishhomeId, fibernetId, totalPrice, status, comboId, category]
         );
 
         if (result[0].affectedRows === 0) {

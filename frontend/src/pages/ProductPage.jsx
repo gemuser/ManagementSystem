@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
+import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
@@ -13,7 +14,6 @@ import {
   AlertCircle,
   CheckCircle,
   Hash,
-  DollarSign,
   Box,
   Tag
 } from 'lucide-react';
@@ -307,7 +307,7 @@ const ProductPage = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">{/* Adjusted margin for fixed sidebar */}
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -432,7 +432,7 @@ const ProductPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <DollarSign size={16} className="inline mr-1" />
+                    <RsIcon size={16} className="inline mr-1" />
                     Price (Rs.) *
                   </label>
                   <input

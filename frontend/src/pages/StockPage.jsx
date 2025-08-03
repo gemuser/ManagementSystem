@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
@@ -231,7 +231,7 @@ const StockPage = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">{/* Adjusted margin for fixed sidebar */}
         {/* Header */}
         <div className="flex justify-between items-center mb-8">

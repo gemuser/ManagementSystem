@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import Sidebar from '../components/Sidebar';
+import DHISidebar from '../components/DHISidebar';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
   BookOpen,
@@ -205,7 +205,7 @@ const DayBook = () => {
   if (loading) {
     return (
       <div className="flex">
-        <Sidebar />
+        <DHISidebar />
         <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -218,7 +218,7 @@ const DayBook = () => {
 
   return (
     <div className="flex">
-      <Sidebar />
+      <DHISidebar />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         
         {/* Header */}
