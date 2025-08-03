@@ -19,44 +19,138 @@ import React from 'react';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Landing Page */}
-        <Route path="/" element={<LandingPage />} />
-        
-        {/* DHI - Inventory Management Routes */}
-        <Route path="/dhi/dashboard" element={<Dashboard />} />
-        <Route path="/dhi/products" element={<ProductPage />} />
-        <Route path="/dhi/stock" element={<StockPage />} />
-        <Route path="/dhi/sales" element={<SalesPage />} />
-        <Route path="/dhi/purchases" element={<PurchasePage />} />
-        <Route path="/dhi/sales-history" element={<SalesHistory />} />
-        <Route path="/dhi/history" element={<HistoryPage />} />
-        <Route path="/dhi/daybook" element={<DayBook />} />
-        
-        {/* Dishhome Service Routes */}
-        <Route path="/dishhome" element={<DishhomePage />} />
-        
-        {/* Fibernet Service Routes */}
-        <Route path="/fibernet" element={<FibernetPage />} />
-        <Route path="/fibernet-dashboard" element={<FibernetDashboard />} />
-        
-        {/* Combo Service Routes */}
-        <Route path="/combo" element={<ComboSelectionPage />} />
-        <Route path="/combo/dth" element={<ComboPage />} />
-        <Route path="/combo/itv" element={<ComboPage />} />
-        
-        {/* Legacy routes for backward compatibility */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/products" element={<ProductPage />} />
-        <Route path="/stock" element={<StockPage />} />
-        <Route path="/sales" element={<SalesPage />} />
-        <Route path="/purchases" element={<PurchasePage />} />
-        <Route path="/sales-history" element={<SalesHistory />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/daybook" element={<DayBook />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <SessionTimeoutWarning />
+        <Routes>
+          {/* Authentication Routes */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          
+          {/* DHI - Inventory Management Routes */}
+          <Route path="/dhi/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/products" element={
+            <ProtectedRoute>
+              <ProductPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/stock" element={
+            <ProtectedRoute>
+              <StockPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/sales" element={
+            <ProtectedRoute>
+              <SalesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/purchases" element={
+            <ProtectedRoute>
+              <PurchasePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/sales-history" element={
+            <ProtectedRoute>
+              <SalesHistory />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/history" element={
+            <ProtectedRoute>
+              <HistoryPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dhi/daybook" element={
+            <ProtectedRoute>
+              <DayBook />
+            </ProtectedRoute>
+          } />
+          
+          {/* Dishhome Service Routes */}
+          <Route path="/dishhome" element={
+            <ProtectedRoute>
+              <DishhomePage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Fibernet Service Routes */}
+          <Route path="/fibernet" element={
+            <ProtectedRoute>
+              <FibernetPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/fibernet-dashboard" element={
+            <ProtectedRoute>
+              <FibernetDashboard />
+            </ProtectedRoute>
+          } />
+          
+          {/* Combo Service Routes */}
+          <Route path="/combo" element={
+            <ProtectedRoute>
+              <ComboSelectionPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/combo/dth" element={
+            <ProtectedRoute>
+              <ComboPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/combo/itv" element={
+            <ProtectedRoute>
+              <ComboPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Legacy routes for backward compatibility */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/products" element={
+            <ProtectedRoute>
+              <ProductPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/stock" element={
+            <ProtectedRoute>
+              <StockPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/sales" element={
+            <ProtectedRoute>
+              <SalesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/purchases" element={
+            <ProtectedRoute>
+              <PurchasePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/sales-history" element={
+            <ProtectedRoute>
+              <SalesHistory />
+            </ProtectedRoute>
+          } />
+          <Route path="/history" element={
+            <ProtectedRoute>
+              <HistoryPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/daybook" element={
+            <ProtectedRoute>
+              <DayBook />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
