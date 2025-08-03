@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticateToken } = require('../../auth/authMiddleware');
 const {
   generateVATBillForSale,
   generateCustomVATBill,
@@ -8,6 +9,9 @@ const {
 } = require('../controllers/vatBillController');
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
 
 /**
  * @route POST /api/vat-bill/generate-for-sale

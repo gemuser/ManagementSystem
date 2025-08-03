@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticateToken } = require('../../auth/authMiddleware');
 const router = express.Router();
 const {
   getAllPurchases,
@@ -8,6 +9,9 @@ const {
   getPurchaseById,
   generateInvoiceNumber
 } = require('../controllers/purchasesController');
+
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
 
 // GET /purchases/list - Get all purchases
 router.get('/list', getAllPurchases);
