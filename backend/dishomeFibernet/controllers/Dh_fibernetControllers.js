@@ -35,9 +35,18 @@ const getCustomersWithDetails = async (req, res) => {
                 d.phoneNumber as dishhome_phone,
                 d.address as dishhome_address,
                 d.package as dishhome_package,
-                d.casId as dishhome_casId
+                d.price as dishhome_price,
+                d.month as dishhome_month,
+                d.category as dishhome_category,
+                f.name as fibernet_customer_name,
+                f.phoneNumber as fibernet_phone,
+                f.address as fibernet_address,
+                f.package as fibernet_package,
+                f.price as fibernet_price,
+                f.month as fibernet_month
             FROM dishhome_fibernet_combo dfc
             LEFT JOIN dishhome d ON dfc.dishhomeId = d.customerId
+            LEFT JOIN fibernet f ON dfc.fibernetId = f.customerId
         `);
         
         if (!data || data[0].length === 0) {
