@@ -210,7 +210,7 @@ function Login() {
             {/* Remember Me Info */}
             {rememberMe && (
               <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs">
-                <span className="font-medium">✓ Extended Session:</span> You'll stay logged in for 30 days instead of 1 hour
+                <span className="font-medium">Remembered</span> You'll stay logged in for 30 days instead of 1 hour
               </div>
             )}
 

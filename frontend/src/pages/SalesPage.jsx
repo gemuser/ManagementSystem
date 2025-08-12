@@ -24,10 +24,7 @@ const SalesPage = () => {
   const [products, setProducts] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [invoiceNo, setInvoiceNo] = useState('');
-  const [cartItems, setCartItems] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [customPrice, setCustomPrice] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [searchFilters, setSearchFilters] = useState({
     name: '',
     category: '',
@@ -35,9 +32,20 @@ const SalesPage = () => {
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchProducts();
+    
+    // Subscribe to data refresh events
+    const unsubscribe = dataRefreshEmitter.subscribe(async () => {
+      console.log('Data refresh event received in SalesPage');
+      setRefreshing(true);
+      await fetchProducts(true); // Force refresh when receiving events
+      setRefreshing(false);
+    });
+    
+    return unsubscribe;
   }, []);
 
   // Filter products based on search criteria
@@ -86,15 +94,36 @@ const SalesPage = () => {
     });
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (forceRefresh = false) => {
     try {
-      setLoading(true);
-      const res = await axios.get('/products/list');
-      const allProducts = res.data.data;
-      setProducts(allProducts);
+      if (!forceRefresh) setLoading(true);
+      else setRefreshing(true);
+      
+      const res = await axios.get('/products/list', {
+        // Add timestamp to prevent caching when force refreshing
+        params: forceRefresh ? { t: Date.now() } : {}
+      });
+      const allProducts = res.data.data || [];
+      
+      // Validate and sanitize product data
+      const validProducts = allProducts.filter(product => {
+        if (!product || !product.id) {
+          console.warn('Invalid product data:', product);
+          return false;
+        }
+        return true;
+      }).map(product => ({
+        ...product,
+        name: product.name || 'Unknown Product',
+        category: product.category || 'No Category',
+        price: parseFloat(product.price) || 0,
+        available_stock: parseInt(product.available_stock) || 0
+      }));
+      
+      setProducts(validProducts);
       
       // Filter products with available stock > 0
-      const inStock = allProducts.filter(product => (product.available_stock || 0) > 0);
+      const inStock = validProducts.filter(product => product.available_stock > 0);
       setAvailableProducts(inStock);
       setFilteredProducts(inStock);
     } catch (err) {
@@ -107,6 +136,7 @@ const SalesPage = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -121,105 +151,47 @@ const SalesPage = () => {
     }
   };
 
-  const addToCart = async () => {
-    if (!selectedProduct || !quantity) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Missing Information',
-        text: 'Please select a product and enter quantity',
-        confirmButtonColor: '#3085d6'
-      });
-      return;
-    }
+  const toggleProductSelection = (product) => {
+    try {
+      if (!product || !product.id) {
+        console.error('Invalid product data:', product);
+        return;
+      }
 
-    if (!customPrice || parseFloat(customPrice) <= 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Invalid Price',
-        text: 'Please enter a valid price for the product',
-        confirmButtonColor: '#3085d6'
-      });
-      return;
-    }
-
-    const product = products.find(p => p.id == selectedProduct);
-    if (!product) return;
-
-    // Check if product already in cart
-    const existingItemIndex = cartItems.findIndex(item => item.product_id == selectedProduct);
-    const currentCartQuantity = existingItemIndex >= 0 ? cartItems[existingItemIndex].quantity : 0;
-    const newTotalQuantity = currentCartQuantity + parseInt(quantity);
-
-    // Check available stock
-    const availableStock = await getAvailableStock(selectedProduct);
-    if (newTotalQuantity > availableStock) {
+      const existingIndex = selectedProducts.findIndex(p => p.id === product.id);
+      
+      if (existingIndex >= 0) {
+        // Remove product from selection
+        setSelectedProducts(selectedProducts.filter(p => p.id !== product.id));
+      } else {
+        // Add product to selection with default values
+        const productPrice = parseFloat(product.price) || 0;
+        const newProduct = {
+          id: product.id,
+          name: product.name || 'Unknown Product',
+          category: product.category || '',
+          price: productPrice,
+          available_stock: product.available_stock || 0,
+          quantity: 1,
+          customPrice: productPrice,
+          total_price: productPrice
+        };
+        setSelectedProducts(prev => [...prev, newProduct]);
+      }
+    } catch (error) {
+      console.error('Error toggling product selection:', error);
       Swal.fire({
         icon: 'error',
-        title: 'Insufficient Stock',
-        text: `Only ${availableStock} units available. You already have ${currentCartQuantity} in cart.`,
+        title: 'Selection Error',
+        text: 'Failed to select product. Please try again.',
         confirmButtonColor: '#ef4444'
       });
-      return;
     }
-
-    const finalPrice = parseFloat(customPrice);
-    const originalPrice = parseFloat(product.price);
-    const discountAmount = originalPrice - finalPrice;
-    const discountPercentage = originalPrice > 0 ? ((discountAmount / originalPrice) * 100) : 0;
-
-    if (existingItemIndex >= 0) {
-      // Update existing item
-      const updatedCart = [...cartItems];
-      updatedCart[existingItemIndex].quantity = newTotalQuantity;
-      updatedCart[existingItemIndex].price = finalPrice; // Update with custom price
-      updatedCart[existingItemIndex].original_price = originalPrice;
-      updatedCart[existingItemIndex].discount_amount = discountAmount;
-      updatedCart[existingItemIndex].discount_percentage = discountPercentage;
-      updatedCart[existingItemIndex].total_price = finalPrice * newTotalQuantity;
-      setCartItems(updatedCart);
-    } else {
-      // Add new item
-      const cartItem = {
-        product_id: product.id,
-        product_name: product.name,
-        price: finalPrice,
-        original_price: originalPrice,
-        discount_amount: discountAmount,
-        discount_percentage: discountPercentage,
-        quantity: parseInt(quantity),
-        total_price: finalPrice * parseInt(quantity)
-      };
-      setCartItems([...cartItems, cartItem]);
-    }
-
-    // Clear selection
-    setSelectedProduct('');
-    setQuantity('');
-    setCustomPrice('');
-
-    let discountMessage = '';
-    if (discountAmount > 0) {
-      discountMessage = ` (${discountPercentage.toFixed(1)}% discount applied!)`;
-    } else if (discountAmount < 0) {
-      discountMessage = ` (${Math.abs(discountPercentage).toFixed(1)}% markup applied)`;
-    }
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Added to Cart',
-      text: `${product.name} added successfully!${discountMessage}`,
-      timer: 2000,
-      showConfirmButton: false
-    });
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems(cartItems.filter(item => item.product_id !== productId));
-  };
-
-  const updateCartQuantity = async (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
+  const updateProductQuantity = async (productId, newQuantity) => {
+    if (isNaN(newQuantity) || newQuantity <= 0) {
+      setSelectedProducts(selectedProducts.filter(p => p.id !== productId));
       return;
     }
 
@@ -234,21 +206,22 @@ const SalesPage = () => {
       return;
     }
 
-    const updatedCart = cartItems.map(item => {
-      if (item.product_id == productId) {
+    setSelectedProducts(selectedProducts.map(product => {
+      if (product.id === productId) {
+        const price = parseFloat(product.customPrice) || 0;
         return {
-          ...item,
-          quantity: newQuantity,
-          total_price: item.price * newQuantity
+          ...product,
+          quantity: parseInt(newQuantity),
+          total_price: price * parseInt(newQuantity)
         };
       }
-      return item;
-    });
-    setCartItems(updatedCart);
+      return product;
+    }));
   };
 
-  const updateCartPrice = async (productId, newPrice) => {
-    if (newPrice <= 0) {
+  const updateProductPrice = (productId, newPrice) => {
+    const price = parseFloat(newPrice);
+    if (isNaN(price) || price <= 0) {
       Swal.fire({
         icon: 'error',
         title: 'Invalid Price',
@@ -258,36 +231,49 @@ const SalesPage = () => {
       return;
     }
 
-    const updatedCart = cartItems.map(item => {
-      if (item.product_id == productId) {
-        const finalPrice = parseFloat(newPrice);
-        const originalPrice = item.original_price || finalPrice;
-        const discountAmount = originalPrice - finalPrice;
-        const discountPercentage = originalPrice > 0 ? ((discountAmount / originalPrice) * 100) : 0;
-        
+    setSelectedProducts(selectedProducts.map(product => {
+      if (product.id === productId) {
+        const quantity = parseInt(product.quantity) || 1;
         return {
-          ...item,
-          price: finalPrice,
-          discount_amount: discountAmount,
-          discount_percentage: discountPercentage,
-          total_price: finalPrice * item.quantity
+          ...product,
+          customPrice: price,
+          total_price: price * quantity
         };
       }
-      return item;
-    });
-    setCartItems(updatedCart);
+      return product;
+    }));
   };
 
-  const calculateCartTotal = () => {
-    return cartItems.reduce((total, item) => total + item.total_price, 0);
+  const calculateTotalAmount = () => {
+    return selectedProducts.reduce((total, product) => {
+      const productTotal = parseFloat(product.total_price) || 0;
+      return total + productTotal;
+    }, 0);
+  };
+
+  const calculateDiscountPercentage = (originalPrice, sellingPrice) => {
+    if (!originalPrice || originalPrice <= 0) return 0;
+    const discount = ((originalPrice - sellingPrice) / originalPrice) * 100;
+    return Math.max(0, discount); // Ensure discount is never negative
+  };
+
+  const calculateTotalDiscount = () => {
+    return selectedProducts.reduce((totalDiscount, product) => {
+      const originalPrice = parseFloat(product.price) || 0;
+      const sellingPrice = parseFloat(product.customPrice) || 0;
+      const quantity = parseInt(product.quantity) || 1;
+      
+      const discountPerUnit = Math.max(0, originalPrice - sellingPrice);
+      return totalDiscount + (discountPerUnit * quantity);
+    }, 0);
   };
 
   const processSale = async () => {
-    if (cartItems.length === 0) {
+    if (selectedProducts.length === 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'Empty Cart',
-        text: 'Please add products to cart before processing sale',
+        title: 'No Products Selected',
+        text: 'Please select products before processing sale',
         confirmButtonColor: '#3085d6'
       });
       return;
@@ -303,72 +289,211 @@ const SalesPage = () => {
       return;
     }
 
-    // Show confirmation with cart details
-    const cartSummary = cartItems.map(item => {
-      const priceInfo = item.original_price && item.original_price !== item.price 
-        ? `Rs. ${item.price} (was Rs. ${item.original_price})` 
-        : `Rs. ${item.price}`;
-      return `${item.product_name} x ${item.quantity} @ ${priceInfo} = Rs. ${item.total_price.toFixed(2)}`;
-    }).join('<br>');
+    // Show confirmation with selected products
+    const totalAmount = calculateTotalAmount();
+    const totalDiscount = calculateTotalDiscount();
 
     const result = await Swal.fire({
-      title: 'Confirm Sale',
+      title: '',
       html: `
-        <div class="text-left">
-          <p><strong>Invoice No:</strong> ${invoiceNo}</p>
-          <p><strong>Items:</strong></p>
-          <div class="ml-4">${cartSummary}</div>
-          <hr class="my-2">
-          <p><strong>Total Amount: Rs. ${calculateCartTotal().toFixed(2)}</strong></p>
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-400 to-green-600 rounded-full mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Confirm Sale</h2>
+          <p class="text-gray-600">Review your order details before completing the sale</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6 border border-gray-200">
+          <!-- Invoice Header -->
+          <div class="flex items-center justify-center mb-6">
+            <div class="bg-white rounded-lg px-4 py-2 shadow-sm border">
+              <div class="flex items-center space-x-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="text-sm font-medium text-gray-600">Invoice:</span>
+                <span class="font-bold text-gray-900">${invoiceNo}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Products List -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <h3 class="text-sm font-semibold text-gray-700">Order Summary</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+              ${selectedProducts.map(product => {
+                const originalPrice = parseFloat(product.price) || 0;
+                const sellingPrice = parseFloat(product.customPrice) || 0;
+                const discountPercent = calculateDiscountPercentage(originalPrice, sellingPrice);
+                const hasDiscount = discountPercent > 0;
+                
+                return `
+                <div class="px-4 py-3">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="font-medium text-gray-900">${product.name}</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">× ${product.quantity}</span>
+                      </div>
+                      ${hasDiscount ? `
+                      <div class="flex items-center space-x-2 mt-1">
+                        <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                          🎉 ${discountPercent.toFixed(1)}% OFF
+                        </span>
+                      </div>
+                      ` : ''}
+                    </div>
+                    <div class="text-right">
+                      ${hasDiscount ? `
+                      <div class="text-xs text-gray-400 line-through">Rs. ${(originalPrice * product.quantity).toFixed(2)}</div>
+                      ` : ''}
+                      <span class="text-lg font-bold text-gray-900">Rs. ${product.total_price.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            ${totalDiscount > 0 ? `
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 mb-3">
+              <span class="text-sm text-gray-600">Subtotal:</span>
+              <span class="text-sm font-medium text-gray-900">Rs. ${(totalAmount + totalDiscount).toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 mb-3">
+              <span class="text-sm text-green-600 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                </svg>
+                Total Savings:
+              </span>
+              <span class="text-sm font-medium text-green-600">- Rs. ${totalDiscount.toFixed(2)}</span>
+            </div>
+            ` : ''}
+            <div class="flex justify-between items-center py-3">
+              <span class="text-lg font-bold text-gray-900">Final Total:</span>
+              <span class="text-2xl font-bold text-green-600">Rs. ${totalAmount.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <p class="text-sm text-gray-500 mb-2">
+            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            ${selectedProducts.length} item${selectedProducts.length > 1 ? 's' : ''} • ${new Date().toLocaleDateString()}
+          </p>
         </div>
       `,
-      icon: 'question',
+      icon: null,
       showCancelButton: true,
-      confirmButtonColor: '#10b981',
+      confirmButtonColor: '#059669',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Complete Sale',
-      cancelButtonText: 'Cancel'
+      confirmButtonText: '✨ Complete Sale',
+      cancelButtonText: '❌ Cancel',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-2xl border-0 shadow-2xl',
+        title: 'hidden',
+        htmlContainer: 'p-0',
+        actions: 'gap-3 mt-6',
+        confirmButton: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 hover:scale-105',
+        cancelButton: 'bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-8 rounded-xl border border-gray-300 transition-all duration-200'
+      },
+      width: 600,
+      padding: '2rem'
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      // Process each item in the cart
-      for (const item of cartItems) {
+      // Process each selected product
+      for (const product of selectedProducts) {
+        const originalPrice = parseFloat(product.price) || 0;
+        const sellingPrice = parseFloat(product.customPrice) || 0;
+        const discountAmount = Math.max(0, originalPrice - sellingPrice);
+        const discountPercent = calculateDiscountPercentage(originalPrice, sellingPrice);
+        
         await axios.post('/sales/create', {
           invoice_no: invoiceNo,
-          product_id: item.product_id,
-          quantity_sold: item.quantity,
-          sale_price: item.price // Send the custom price
+          product_id: product.id,
+          quantity_sold: product.quantity,
+          sale_price: product.customPrice,
+          original_price: originalPrice,
+          discount_amount: discountAmount,
+          discount_percent: discountPercent
         });
       }
 
       // Show success message
       Swal.fire({
-        icon: 'success',
-        title: 'Sale Completed!',
+        title: '',
         html: `
-          <div class="text-left">
-            <p><strong>Invoice ${invoiceNo}</strong> processed successfully!</p>
-            <p class="text-sm text-gray-600 mt-2">Total Amount: Rs. ${calculateCartTotal().toFixed(2)}</p>
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full mb-6">
+              <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-3">🎉 Sale Completed!</h2>
+            <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 mb-4 border border-green-200">
+              <div class="flex items-center justify-center space-x-3 mb-3">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="text-lg font-semibold text-green-800">Invoice: ${invoiceNo}</span>
+              </div>
+              <div class="text-3xl font-bold text-green-700">Rs. ${calculateTotalAmount().toFixed(2)}</div>
+              <div class="text-sm text-green-600 mt-1">Payment Successfully Processed</div>
+            </div>
+            <p class="text-gray-600">
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Transaction completed at ${new Date().toLocaleString()}
+            </p>
           </div>
         `,
-        confirmButtonColor: '#10b981',
-        confirmButtonText: 'Continue'
+        icon: null,
+        confirmButtonColor: '#059669',
+        confirmButtonText: '✨ Great!',
+        timer: 4000,
+        timerProgressBar: true,
+        customClass: {
+          popup: 'rounded-2xl border-0 shadow-2xl',
+          title: 'hidden',
+          htmlContainer: 'p-0',
+          confirmButton: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-200 hover:scale-105'
+        },
+        width: 500,
+        padding: '2rem'
       });
 
-      // Reset form
-      setCartItems([]);
+      // Reset form and refresh data
+      setSelectedProducts([]);
       setInvoiceNo('');
-      fetchProducts(); // Refresh to update available stock
       
-      // Trigger global refresh for other components
-      dataRefreshEmitter.emit();
+      // Immediately emit refresh event, then refresh local data
+      dataRefreshEmitter.emit(); // Notify other components first
+      
+      // Wait for backend to process, then refresh local data
+      setTimeout(async () => {
+        await fetchProducts(true); // Force refresh to update available stock
+      }, 300); // Reduced delay for faster updates
     } catch (err) {
       Swal.fire({
         icon: 'error',
         title: 'Sale Failed',
-        text: err.response?.data?.message || 'Error processing sale',
+        text: err.response?.data?.message || 'Unable to process sale',
         confirmButtonColor: '#ef4444'
       });
     }
@@ -396,112 +521,31 @@ const SalesPage = () => {
               <RefreshCw size={16} className="mr-2" />
               Refresh
             </button>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Available Products</p>
-              <p className="text-2xl font-bold text-blue-600">{availableProducts.length}</p>
-            </div>
+            
           </div>
         </div>
 
         {/* Sales Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Available Products</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{availableProducts.length}</p>
-              </div>
-              <div className="p-3 rounded-full bg-blue-100">
-                <Package size={24} className="text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Cart Items</p>
-                <p className="text-2xl font-bold text-orange-600 mt-1">{cartItems.length}</p>
-              </div>
-              <div className="p-3 rounded-full bg-orange-100">
-                <ShoppingBag size={24} className="text-orange-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Cart Value</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">Rs. {calculateCartTotal().toFixed(0)}</p>
-              </div>
-              <div className="p-3 rounded-full bg-green-100">
-                <RsIcon size={24} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Categories</p>
-                <p className="text-2xl font-bold text-purple-600 mt-1">
-                  {[...new Set(availableProducts.map(p => p.category))].length}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-purple-100">
-                <BarChart3 size={24} className="text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
+        
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Side - Invoice & Product Selection */}
+          {/* Left Side - Product Search & Invoice */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Invoice Information */}
+            {/* Product Search & Selection - Combined Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center mb-6">
-                <Receipt size={24} className="mr-3 text-indigo-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Invoice Information</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <Receipt size={14} className="inline mr-1" />
-                    Invoice Number
-                  </label>
-                  <input
-                    type="text"
-                    value={invoiceNo}
-                    onChange={(e) => setInvoiceNo(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="Enter invoice number (e.g., INV-001)"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <Grid3X3 size={14} className="inline mr-1" />
-                    Date & Time
-                  </label>
-                  <input
-                    type="text"
-                    value={new Date().toLocaleString()}
-                    disabled
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Product Search & Filter */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              {/* Find Products Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
                   <Search size={24} className="mr-3 text-indigo-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Find Products</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Find & Select Products</h2>
                 </div>
                 <div className="flex items-center space-x-2">
+                  {refreshing && (
+                    <div className="flex items-center text-blue-600 mr-2">
+                      <RefreshCw size={14} className="animate-spin mr-1" />
+                      <span className="text-xs">Syncing...</span>
+                    </div>
+                  )}
                   <Filter size={16} className="text-gray-500" />
                   <span className="text-sm text-gray-600">
                     {filteredProducts.length} of {availableProducts.length} products
@@ -509,6 +553,7 @@ const SalesPage = () => {
                 </div>
               </div>
               
+              {/* Search Filters */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -561,7 +606,7 @@ const SalesPage = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 mb-6">
                 <button
                   onClick={clearFilters}
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-all"
@@ -569,304 +614,263 @@ const SalesPage = () => {
                   Clear Filters
                 </button>
               </div>
-            </div>
 
-            {/* Add Product to Cart */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center mb-6">
-                <Plus size={24} className="mr-3 text-green-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Add Product to Cart</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Select Product</label>
-                  <select
-                    value={selectedProduct}
-                    onChange={(e) => {
-                      setSelectedProduct(e.target.value);
-                      // Auto-fill the original price when product is selected
-                      const product = filteredProducts.find(p => p.id == e.target.value);
-                      if (product) {
-                        setCustomPrice(product.price);
-                      }
-                    }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  >
-                    <option value="">Choose a product...</option>
-                    {filteredProducts.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - Rs. {product.price} (Available: {product.available_stock || 0})
-                      </option>
-                    ))}
-                  </select>
+              {/* Product Selection Section */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <Package size={24} className="mr-3 text-indigo-600" />
+                    <h3 className="text-xl font-semibold text-gray-900">Available Products</h3>
+                  </div>
+                  <span className="text-sm text-gray-600 font-medium">
+                    {filteredProducts.length} products available
+                  </span>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter quantity"
-                    min="1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    <RsIcon size={14} className="inline mr-1" />
-                    Sale Price
-                  </label>
-                  <input
-                    type="number"
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    placeholder="Enter sale price"
-                    min="0.01"
-                    step="0.01"
-                  />
-                  {selectedProduct && customPrice && (
-                    <div className="mt-1">
-                      {(() => {
-                        const product = filteredProducts.find(p => p.id == selectedProduct);
-                        if (product && customPrice) {
-                          const originalPrice = parseFloat(product.price);
-                          const finalPrice = parseFloat(customPrice);
-                          const discountAmount = originalPrice - finalPrice;
-                          const discountPercentage = originalPrice > 0 ? ((discountAmount / originalPrice) * 100) : 0;
-                          
-                          if (discountAmount > 0) {
-                            return (
-                              <span className="text-xs text-green-600 font-medium">
-                                {discountPercentage.toFixed(1)}% discount (Rs. {discountAmount.toFixed(2)} off)
-                              </span>
-                            );
-                          } else if (discountAmount < 0) {
-                            return (
-                              <span className="text-xs text-orange-600 font-medium">
-                                {Math.abs(discountPercentage).toFixed(1)}% markup (+Rs. {Math.abs(discountAmount).toFixed(2)})
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span className="text-xs text-gray-600 font-medium">
-                                Original price
-                              </span>
-                            );
-                          }
+                <div className="max-h-96 overflow-y-auto">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                      <span className="ml-3 text-gray-600">Loading products...</span>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-500 mb-2">No products available</p>
+                      <p className="text-sm text-gray-400">Try adjusting your search filters</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredProducts.map((product) => {
+                        try {
+                          const isSelected = selectedProducts.find(p => p.id === product.id);
+                          return (
+                            <div 
+                              key={product.id} 
+                              className={`border rounded-lg p-3 transition-all cursor-pointer hover:shadow-sm ${
+                                isSelected 
+                                  ? 'border-green-500 bg-green-50' 
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                              onClick={() => toggleProductSelection(product)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 text-sm">{product.name || 'Unknown Product'}</h4>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-xs text-gray-500">{product.category || 'No Category'}</span>
+                                    <span className="text-sm font-semibold text-gray-900">Rs. {parseFloat(product.price || 0).toFixed(2)}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-3 ml-4">
+                                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                    {product.available_stock || 0} stock
+                                  </span>
+                                  {isSelected && (
+                                    <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
+                                      ✓
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } catch (error) {
+                          console.error('Error rendering product:', product, error);
+                          return (
+                            <div key={product.id || Math.random()} className="border border-red-200 rounded-lg p-3 bg-red-50">
+                              <p className="text-red-600 text-sm">Error loading product</p>
+                            </div>
+                          );
                         }
-                        return null;
-                      })()}
+                      })}
                     </div>
                   )}
                 </div>
-
-                <button
-                  onClick={addToCart}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center transition-all shadow-sm"
-                  disabled={availableProducts.length === 0}
-                >
-                  <Plus size={16} className="mr-2" />
-                  Add to Cart
-                </button>
               </div>
             </div>
-
-            {/* Available Products Quick View */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <Package size={24} className="mr-3 text-indigo-600" />
-                  <h3 className="text-xl font-semibold text-gray-900">Available Products</h3>
-                </div>
-                <span className="text-sm text-gray-600 font-medium">
-                  {filteredProducts.length} products available
-                </span>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    <span className="ml-3 text-gray-600">Loading products...</span>
-                  </div>
-                ) : filteredProducts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500 mb-2">No products available</p>
-                    <p className="text-sm text-gray-400">Try adjusting your search filters</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredProducts.slice(0, 8).map((product) => (
-                      <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all hover:border-indigo-300">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{product.name}</h4>
-                            <p className="text-sm text-gray-600">{product.category}</p>
-                          </div>
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
-                            {product.available_stock || 0} available
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-lg font-bold text-gray-900">Rs. {product.price}</span>
-                          <button
-                            onClick={() => {
-                              setSelectedProduct(product.id);
-                              setQuantity('1');
-                              setCustomPrice(product.price);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            Quick Select
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            
+            {/* Products will be displayed here - Invoice details moved to right side */}
           </div>
 
-          {/* Right Side - Shopping Cart */}
+          {/* Right Side - Invoice Details & Selected Products Management */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center">
-                  <ShoppingCart size={24} className="mr-3 text-blue-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Shopping Cart</h2>
+            {/* Right Side Functions Container */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+              {/* Invoice Details */}
+              <div className="border-b border-gray-100 p-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Invoice Details</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Invoice Number
+                  </label>
+                  <input
+                    type="text"
+                    value={invoiceNo}
+                    onChange={(e) => setInvoiceNo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter invoice number"
+                  />
                 </div>
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                  {cartItems.length} items
-                </span>
               </div>
+
+              {/* Selected Products */}
+              <div className="border-b border-gray-100 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium text-gray-900">Selected Items</h3>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {selectedProducts.length} items
+                  </span>
+                </div>
               
-              {cartItems.length === 0 ? (
+              {selectedProducts.length === 0 ? (
                 <div className="text-center py-12">
                   <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-500 mb-2">Cart is empty</p>
-                  <p className="text-sm text-gray-400">Add products to start a sale</p>
+                  <p className="text-gray-500 mb-2">No products selected</p>
+                  <p className="text-sm text-gray-400">Click on products to select them</p>
                 </div>
               ) : (
                 <div>
-                  {/* Cart Items */}
-                  <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
-                    {cartItems.map((item) => (
-                      <div key={item.product_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-all">
+                  {/* Selected Products */}
+                  <div className="space-y-3 mb-6 max-h-80 overflow-y-auto">
+                    {selectedProducts.map((product) => {
+                      const originalPrice = parseFloat(product.price) || 0;
+                      const sellingPrice = parseFloat(product.customPrice) || 0;
+                      const discountPercent = calculateDiscountPercentage(originalPrice, sellingPrice);
+                      const hasDiscount = discountPercent > 0;
+                      
+                      return (
+                      <div key={product.id} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-sm">{item.product_name}</h4>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {item.original_price && item.original_price !== item.price ? (
-                                <div>
-                                  <span className="line-through text-gray-400">Rs. {item.original_price}</span>
-                                  <span className="ml-2 text-green-600 font-medium">
-                                    Rs. {item.price} 
-                                    {item.discount_amount > 0 && (
-                                      <span className="ml-1">({item.discount_percentage.toFixed(1)}% off)</span>
-                                    )}
+                            <h4 className="font-medium text-gray-900 text-sm">{product.name}</h4>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {hasDiscount ? (
+                                <div className="flex items-center space-x-2">
+                                  <span className="line-through text-gray-400">Rs. {originalPrice}</span>
+                                  <span className="text-green-600 font-medium">Rs. {sellingPrice}</span>
+                                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">
+                                    {discountPercent.toFixed(1)}% off
                                   </span>
                                 </div>
                               ) : (
-                                <span>Rs. {item.price} per unit</span>
+                                <span>Rs. {sellingPrice} per unit</span>
                               )}
                             </div>
                           </div>
                           <button
-                            onClick={() => removeFromCart(item.product_id)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            title="Remove from cart"
+                            onClick={() => setSelectedProducts(selectedProducts.filter(p => p.id !== product.id))}
+                            className="text-gray-400 hover:text-red-500 p-1"
+                            title="Remove"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-2 mb-2">
-                          <div>
-                            <label className="text-xs text-gray-600">Qty:</label>
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => updateCartQuantity(item.product_id, parseInt(e.target.value))}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              min="1"
-                            />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-1">
+                              <label className="text-xs text-gray-500">Qty:</label>
+                              <input
+                                type="number"
+                                value={product.quantity}
+                                onChange={(e) => updateProductQuantity(product.id, parseInt(e.target.value))}
+                                className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                min="1"
+                              />
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <label className="text-xs text-gray-500">Price:</label>
+                              <input
+                                type="number"
+                                value={product.customPrice}
+                                onChange={(e) => updateProductPrice(product.id, parseFloat(e.target.value))}
+                                className="w-20 border border-gray-300 rounded px-2 py-1 text-xs text-center focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                min="0.01"
+                                step="0.01"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-xs text-gray-600">Price:</label>
-                            <input
-                              type="number"
-                              value={item.price}
-                              onChange={(e) => updateCartPrice(item.product_id, parseFloat(e.target.value))}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              min="0.01"
-                              step="0.01"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end">
-                          <span className="font-bold text-gray-900">Rs. {item.total_price.toFixed(2)}</span>
+                          <span className="font-semibold text-sm text-gray-900">Rs. {product.total_price.toFixed(2)}</span>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                    {/* Cart Summary */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <div className="space-y-3 mb-6">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Subtotal:</span>
-                        <span className="font-semibold text-gray-900">Rs. {calculateCartTotal().toFixed(2)}</span>
+                  {/* Summary */}
+                  <div className="border-t border-gray-200 pt-4">
+                    {calculateTotalDiscount() > 0 && (
+                      <div className="flex justify-between items-center mb-2 text-sm">
+                        <span className="text-gray-600">Total Discount:</span>
+                        <span className="font-medium text-green-600">Rs. {calculateTotalDiscount().toFixed(2)}</span>
                       </div>
-                      {cartItems.some(item => item.discount_amount && item.discount_amount > 0) && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-green-600">Total Savings:</span>
-                          <span className="font-semibold text-green-600">
-                            Rs. {cartItems.reduce((total, item) => 
-                              total + ((item.discount_amount || 0) * item.quantity), 0
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Tax (0%):</span>
-                        <span className="font-semibold text-gray-900">Rs. 0.00</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                        <span className="text-lg font-bold text-gray-900">Total:</span>
-                        <span className="text-xl font-bold text-green-600">
-                          Rs. {calculateCartTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Process Sale Button */}
-                    <button
-                      onClick={processSale}
-                      className={`w-full px-6 py-4 rounded-lg font-semibold text-lg flex items-center justify-center transition-all shadow-sm ${
-                        !invoiceNo 
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
-                      disabled={!invoiceNo}
-                    >
-                      <CheckCircle size={20} className="mr-2" />
-                      Complete Sale
-                    </button>
-                    
-                    {!invoiceNo && (
-                      <p className="text-center text-xs text-red-500 mt-2">
-                        Please enter an invoice number to complete the sale
-                      </p>
                     )}
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-900">Total:</span>
+                      <span className="text-lg font-bold text-green-600">
+                        Rs. {calculateTotalAmount().toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Selected Products Quick Summary */}
+            {selectedProducts.length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Quick Summary</span>
+                  <span className="text-sm text-blue-600 font-medium">
+                    {selectedProducts.length} items
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {selectedProducts.slice(0, 3).map((product) => (
+                    <div key={product.id} className="flex justify-between items-center text-xs">
+                      <span className="text-gray-600 truncate">{product.name} x {product.quantity}</span>
+                      <span className="font-medium text-gray-900">Rs. {product.total_price.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  {selectedProducts.length > 3 && (
+                    <div className="text-xs text-gray-500 text-center">
+                      +{selectedProducts.length - 3} more items
+                    </div>
+                  )}
+                  <div className="border-t border-blue-300 pt-1 mt-1">
+                    <div className="flex justify-between items-center font-bold text-sm">
+                      <span>Total:</span>
+                      <span className="text-green-600">Rs. {calculateTotalAmount().toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Complete Sale Button - Now in right sidebar */}
+            <div className="mt-6 border-t border-gray-100 pt-6">
+              <button
+                onClick={processSale}
+                className={`w-full px-4 py-3 rounded-lg font-semibold text-base flex items-center justify-center transition-all duration-200 ${
+                  !invoiceNo || selectedProducts.length === 0
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                    : 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
+                }`}
+                disabled={!invoiceNo || selectedProducts.length === 0}
+              >
+                <Receipt size={18} className="mr-2" />
+                {!invoiceNo || selectedProducts.length === 0 ? 'Complete Sale' : `Complete Sale • Rs. ${calculateTotalAmount().toFixed(2)}`}
+              </button>
+              
+              {(!invoiceNo || selectedProducts.length === 0) && (
+                <div className="mt-3 text-center">
+                  <p className="text-xs text-red-500">
+                    {!invoiceNo ? 'Invoice number required' : 'Select products to continue'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
           </div>
         </div>
       </main>

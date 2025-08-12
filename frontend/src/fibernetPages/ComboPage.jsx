@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import axios from '../api/axios';
 import ComboSidebar from '../components/ComboSidebar';
+import ComboCustomerForm from '../components/ComboCustomerForm';
 import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 
 const ComboPage = () => {
+  const location = useLocation();
   const [combos, setCombos] = useState([]);
   const [dishhomeCustomers, setDishhomeCustomers] = useState([]);
   const [fibernetCustomers, setFibernetCustomers] = useState([]);
@@ -28,26 +31,45 @@ const ComboPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCombo, setEditingCombo] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    dishhomeId: '',
-    fibernetId: '',
-    totalPrice: '',
-    status: 1
-  });
+  const [formLoading, setFormLoading] = useState(false);
+  
+  // Determine initial tab based on route
+  const getInitialTab = () => {
+    if (location.pathname.includes('/combo/dth')) return 'DTH';
+    if (location.pathname.includes('/combo/itv')) return 'ITV';
+    return 'ALL';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  
+  // Update tab when route changes
+  useEffect(() => {
+    const newTab = location.pathname.includes('/combo/dth') ? 'DTH' : 
+                   location.pathname.includes('/combo/itv') ? 'ITV' : 'ALL';
+    setActiveTab(newTab);
+  }, [location.pathname]);
 
-  // Filter combos based on search
+  // Filter combos based on search and active tab
   useEffect(() => {
     let filtered = combos;
 
+    // Filter by active tab first
+    if (activeTab === 'DTH') {
+      filtered = filtered.filter(combo => combo.upgradeType === 'DTH');
+    } else if (activeTab === 'ITV') {
+      filtered = filtered.filter(combo => combo.upgradeType === 'ITV');
+    }
+
+    // Then filter by search term
     if (searchTerm.trim()) {
       filtered = filtered.filter(combo => {
         const dishhomeCustomer = dishhomeCustomers.find(c => c.customerId === combo.dishhomeId);
         const fibernetCustomer = fibernetCustomers.find(c => c.customerId === combo.fibernetId);
         
         return (
-          combo.comboId.toString().includes(searchTerm) ||
-          combo.totalPrice.toString().includes(searchTerm) ||
-          combo.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          combo.comboId?.toString().includes(searchTerm) ||
+          combo.totalPrice?.toString().includes(searchTerm) ||
+          combo.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (dishhomeCustomer && dishhomeCustomer.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (fibernetCustomer && fibernetCustomer.name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
@@ -55,7 +77,12 @@ const ComboPage = () => {
     }
 
     setFilteredCombos(filtered);
-  }, [combos, searchTerm, dishhomeCustomers, fibernetCustomers]);
+  }, [combos, searchTerm, dishhomeCustomers, fibernetCustomers, activeTab]);
+
+  // Get counts for each tab
+  const allCount = combos.length;
+  const dthCount = combos.filter(combo => combo.upgradeType === 'DTH').length;
+  const itvCount = combos.filter(combo => combo.upgradeType === 'ITV').length;
 
   // Fetch data
   const fetchData = async () => {
@@ -67,9 +94,9 @@ const ComboPage = () => {
         axios.get('/fibernet/list')
       ]);
       
-      setCombos(comboRes.data.data);
-      setDishhomeCustomers(dishhomeRes.data.data);
-      setFibernetCustomers(fibernetRes.data.data);
+      setCombos(comboRes.data.data || []);
+      setDishhomeCustomers(dishhomeRes.data.data || []);
+      setFibernetCustomers(fibernetRes.data.data || []);
     } catch (err) {
       console.error("Error fetching data", err);
       Swal.fire({
@@ -83,31 +110,14 @@ const ComboPage = () => {
     }
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.dishhomeId || !formData.fibernetId || !formData.totalPrice) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Missing Information',
-        text: 'Please fill in all fields',
-        confirmButtonColor: '#f59e0b'
-      });
-      return;
-    }
+  // Load data on component mount
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    if (parseFloat(formData.totalPrice) <= 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Invalid Price',
-        text: 'Total price must be greater than 0',
-        confirmButtonColor: '#f59e0b'
-      });
-      return;
-    }
-
+  // Handle form submission (both add and edit)
+  const handleFormSubmit = async (formData) => {
+    setFormLoading(true);
     try {
       if (editingCombo) {
         await axios.put(`/Dhfibernet/update/${editingCombo.comboId}`, formData);
@@ -127,12 +137,6 @@ const ComboPage = () => {
         });
       }
 
-      setFormData({
-        dishhomeId: '',
-        fibernetId: '',
-        totalPrice: '',
-        status: 1
-      });
       setShowAddForm(false);
       setEditingCombo(null);
       fetchData();
@@ -145,17 +149,19 @@ const ComboPage = () => {
         text: err.response?.data?.message || 'Failed to save combo. Please try again.',
         confirmButtonColor: '#ef4444'
       });
+    } finally {
+      setFormLoading(false);
     }
+  };
+
+  // Cancel form
+  const handleFormCancel = () => {
+    setShowAddForm(false);
+    setEditingCombo(null);
   };
 
   // Handle edit
   const handleEdit = (combo) => {
-    setFormData({
-      dishhomeId: combo.dishhomeId.toString(),
-      fibernetId: combo.fibernetId.toString(),
-      totalPrice: combo.totalPrice.toString(),
-      status: combo.status
-    });
     setEditingCombo(combo);
     setShowAddForm(true);
   };
@@ -195,36 +201,19 @@ const ComboPage = () => {
     }
   };
 
-  // Cancel form
-  const handleCancel = () => {
-    setFormData({
-      dishhomeId: '',
-      fibernetId: '',
-      totalPrice: '',
-      status: 1
-    });
-    setShowAddForm(false);
-    setEditingCombo(null);
-  };
-
-  // Get customer name by ID
-  const getCustomerName = (customers, customerId) => {
-    const customer = customers.find(c => c.customerId === customerId);
-    return customer ? customer.name : 'Unknown Customer';
-  };
-
-  // Get customer details by ID
-  const getCustomerDetails = (customers, customerId) => {
-    return customers.find(c => c.customerId === customerId);
-  };
-
   useEffect(() => {
     fetchData();
   }, []);
 
+  const getServiceType = () => {
+    if (location.pathname.includes('/combo/dth')) return 'dth';
+    if (location.pathname.includes('/combo/itv')) return 'itv';
+    return 'general';
+  };
+
   return (
     <div className="flex">
-      <ComboSidebar />
+      <ComboSidebar serviceType={getServiceType()} />
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
@@ -261,85 +250,56 @@ const ComboPage = () => {
             </div>
           </div>
 
+          {/* Filter Tabs */}
+          <div className="mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <Link
+                  to="/combo"
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'ALL'
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  All Combos ({allCount})
+                </Link>
+                <Link
+                  to="/combo/dth"
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+                    activeTab === 'DTH'
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Tv className="h-4 w-4 mr-1" />
+                  DTH Customers ({dthCount})
+                </Link>
+                <Link
+                  to="/combo/itv"
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+                    activeTab === 'ITV'
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Wifi className="h-4 w-4 mr-1" />
+                  ITV Customers ({itvCount})
+                </Link>
+              </nav>
+            </div>
+          </div>
+
           {/* Add/Edit Form */}
           {showAddForm && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {editingCombo ? 'Edit Combo' : 'Create New Combo'}
-              </h2>
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dishhome Customer</label>
-                  <select
-                    value={formData.dishhomeId}
-                    onChange={(e) => setFormData({...formData, dishhomeId: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Select Dishhome Customer</option>
-                    {dishhomeCustomers.map(customer => (
-                      <option key={customer.customerId} value={customer.customerId}>
-                        {customer.name} - {customer.phoneNumber}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fibernet Customer</label>
-                  <select
-                    value={formData.fibernetId}
-                    onChange={(e) => setFormData({...formData, fibernetId: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Select Fibernet Customer</option>
-                    {fibernetCustomers.map(customer => (
-                      <option key={customer.customerId} value={customer.customerId}>
-                        {customer.name} - {customer.phoneNumber}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.totalPrice}
-                    onChange={(e) => setFormData({...formData, totalPrice: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Combo price"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value={1}>Active</option>
-                    <option value={0}>Inactive</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2 flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    {editingCombo ? 'Update Combo' : 'Create Combo'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+            <div className="mb-6">
+              <ComboCustomerForm
+                initialData={editingCombo}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
+                loading={formLoading}
+                isUpgrade={false}
+              />
             </div>
           )}
 
@@ -348,7 +308,9 @@ const ComboPage = () => {
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900 flex items-center">
                 <List className="h-5 w-5 mr-2 text-green-600" />
-                Combo Packages ({filteredCombos.length})
+                {activeTab === 'ALL' && `All Combo Packages (${filteredCombos.length})`}
+                {activeTab === 'DTH' && `DTH Customers (${filteredCombos.length})`}
+                {activeTab === 'ITV' && `ITV Customers (${filteredCombos.length})`}
               </h3>
             </div>
 
@@ -359,7 +321,11 @@ const ComboPage = () => {
             ) : filteredCombos.length === 0 ? (
               <div className="text-center py-12">
                 <Package2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No combo packages found</p>
+                <p className="text-gray-500">
+                  {activeTab === 'ALL' && 'No combo packages found'}
+                  {activeTab === 'DTH' && 'No DTH customers found'}
+                  {activeTab === 'ITV' && 'No ITV customers found'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -403,9 +369,6 @@ const ComboPage = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredCombos.map((combo) => {
-                      const dishhomeCustomer = getCustomerDetails(dishhomeCustomers, combo.dishhomeId);
-                      const fibernetCustomer = getCustomerDetails(fibernetCustomers, combo.fibernetId);
-                      
                       return (
                         <tr key={combo.comboId} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -414,26 +377,31 @@ const ComboPage = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {dishhomeCustomer ? dishhomeCustomer.name : 'Unknown'}
+                                {combo.customerName || 'Unknown Customer'}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {dishhomeCustomer ? dishhomeCustomer.phoneNumber : 'N/A'}
+                                {combo.phoneNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-purple-600">
-                                {dishhomeCustomer ? dishhomeCustomer.package : 'N/A'}
+                              <div className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded mt-1 inline-block">
+                                {combo.dishhomePackage || 'N/A'}
                               </div>
+                              {combo.upgradeType && (
+                                <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
+                                  {combo.upgradeType} • From {combo.sourceService}
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {fibernetCustomer ? fibernetCustomer.name : 'Unknown'}
+                                {combo.customerName || 'Unknown Customer'}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {fibernetCustomer ? fibernetCustomer.phoneNumber : 'N/A'}
+                                {combo.phoneNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-blue-600">
-                                {fibernetCustomer ? fibernetCustomer.package : 'N/A'}
+                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
+                                {combo.fibernetPackage || 'N/A'}
                               </div>
                             </div>
                           </td>
@@ -441,13 +409,9 @@ const ComboPage = () => {
                             <div className="text-sm font-medium text-gray-900">
                               Rs. {combo.totalPrice}
                             </div>
-                            {dishhomeCustomer && fibernetCustomer && (
+                            {combo.month && (
                               <div className="text-xs text-gray-500">
-                                Individual: Rs. {(parseFloat(dishhomeCustomer.price) + parseFloat(fibernetCustomer.price)).toFixed(2)}
-                                <br />
-                                <span className={`${combo.totalPrice < (parseFloat(dishhomeCustomer.price) + parseFloat(fibernetCustomer.price)) ? 'text-green-600' : 'text-red-600'}`}>
-                                  Savings: Rs. {(parseFloat(dishhomeCustomer.price) + parseFloat(fibernetCustomer.price) - combo.totalPrice).toFixed(2)}
-                                </span>
+                                Valid till: {combo.month}
                               </div>
                             )}
                           </td>

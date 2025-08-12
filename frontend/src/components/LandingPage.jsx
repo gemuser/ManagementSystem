@@ -9,7 +9,12 @@ import {
   Zap,
   LogIn,
   LogOut,
-  User
+  User,
+  History,
+  BookOpen,
+  BarChart3,
+  Calendar,
+  FileText
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -31,7 +36,7 @@ const LandingPage = () => {
       subtitle: 'TV Services',
       icon: Tv,
       color: 'from-purple-500 to-purple-600',
-      route: '/dishhome'
+      route: '/dishhome-dashboard'
     },
     {
       id: 'fibernet',
@@ -151,6 +156,32 @@ const LandingPage = () => {
               );
             })}
           </div>
+
+          {/* Histories Section */}
+          {isAuthenticated && (
+            <div className="mt-16 flex justify-end">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-white mb-2">Quick Access</h3>
+                  <p className="text-gray-300">Access comprehensive day book records</p>
+                </div>
+                
+                <div className="flex justify-center">
+                  {/* Single Day Book Button */}
+                  <div
+                    onClick={() => navigate('/daybook')}
+                    className="group bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 cursor-pointer transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <div className="text-center">
+                      <BookOpen className="h-12 w-12 text-white mx-auto mb-3" />
+                      <h4 className="text-white font-bold text-lg">Day Book</h4>
+                      <p className="text-orange-100 text-sm">All Records & Analytics</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Authentication Note */}
           {!isAuthenticated && (

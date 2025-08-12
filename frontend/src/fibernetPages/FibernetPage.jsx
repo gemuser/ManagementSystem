@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 import FibernetSidebar from '../components/FibernetSidebar';
+import UpgradeToComboButton from '../components/UpgradeToComboButton';
 import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
@@ -17,6 +18,7 @@ import {
   Package,
   Calendar,
   Activity,
+  ArrowUp,
   Globe
 } from 'lucide-react';
 
@@ -206,6 +208,158 @@ const FibernetPage = () => {
     setEditingCustomer(null);
   };
 
+  // Generate invoice for Fibernet customer
+  const generateInvoice = async (customer) => {
+    try {
+      const { value: formValues } = await Swal.fire({
+        title: 'Generate Fibernet Invoice',
+        html: `
+          <div class="space-y-4 text-left">
+            <div class="bg-blue-50 p-4 rounded-lg mb-4">
+              <h4 class="font-medium text-blue-800 mb-2">Customer Information</h4>
+              <p><strong>Name:</strong> ${customer.name}</p>
+              <p><strong>Package:</strong> ${customer.package}</p>
+              <p><strong>Monthly Rate:</strong> Rs. ${customer.price}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Billing Months *</label>
+              <input id="monthsBilled" class="swal2-input w-full" type="number" min="1" max="12" value="1" placeholder="Number of months to bill">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+              <select id="discountType" class="swal2-input w-full">
+                <option value="none">No Discount</option>
+                <option value="percentage">Percentage Discount</option>
+                <option value="amount">Fixed Amount Discount</option>
+              </select>
+            </div>
+            <div id="discountField" style="display: none;">
+              <label id="discountLabel" class="block text-sm font-medium text-gray-700 mb-1">Discount</label>
+              <input id="discountValue" class="swal2-input w-full" type="number" min="0" step="0.01" placeholder="Enter discount value">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input id="dueDate" class="swal2-input w-full" type="date" value="${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+              <textarea id="notes" class="swal2-input w-full" placeholder="Any additional notes" rows="3"></textarea>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#0066cc',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Generate Invoice',
+        cancelButtonText: 'Cancel',
+        didOpen: () => {
+          const discountType = document.getElementById('discountType');
+          const discountField = document.getElementById('discountField');
+          const discountLabel = document.getElementById('discountLabel');
+          const discountValue = document.getElementById('discountValue');
+
+          discountType.addEventListener('change', (e) => {
+            if (e.target.value === 'none') {
+              discountField.style.display = 'none';
+            } else {
+              discountField.style.display = 'block';
+              discountLabel.textContent = e.target.value === 'percentage' ? 'Discount (%)' : 'Discount Amount (Rs.)';
+              discountValue.placeholder = e.target.value === 'percentage' ? 'Enter percentage (0-100)' : 'Enter amount';
+              discountValue.max = e.target.value === 'percentage' ? '100' : '';
+            }
+          });
+        },
+        preConfirm: () => {
+          const monthsBilled = parseInt(document.getElementById('monthsBilled').value);
+          const discountType = document.getElementById('discountType').value;
+          const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+          const dueDate = document.getElementById('dueDate').value;
+          const notes = document.getElementById('notes').value;
+
+          if (!monthsBilled || monthsBilled < 1) {
+            Swal.showValidationMessage('Please enter valid billing months (1-12)');
+            return false;
+          }
+
+          if (discountType === 'percentage' && discountValue > 100) {
+            Swal.showValidationMessage('Percentage discount cannot exceed 100%');
+            return false;
+          }
+
+          return {
+            monthsBilled,
+            discountType,
+            discountValue,
+            dueDate,
+            notes
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      // Show loading
+      Swal.fire({
+        title: 'Generating Invoice...',
+        text: 'Please wait while we create your invoice',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Prepare invoice data
+      const invoiceData = {
+        customerId: customer.customerId,
+        monthsBilled: formValues.monthsBilled,
+        discountPercentage: formValues.discountType === 'percentage' ? formValues.discountValue : 0,
+        discountAmount: formValues.discountType === 'amount' ? formValues.discountValue : 0,
+        dueDate: formValues.dueDate,
+        notes: formValues.notes
+      };
+
+      // Generate invoice
+      const response = await axios.post('/invoices/fibernet/generate', invoiceData);
+
+      if (response.data.success) {
+        // Create blob and download PDF
+        const pdfData = response.data.pdf;
+        const blob = new Blob([Uint8Array.from(atob(pdfData), c => c.charCodeAt(0))], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Fibernet-Invoice-${response.data.data.invoiceNumber}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Invoice Generated!',
+          html: `
+            <p>Invoice <strong>${response.data.data.invoiceNumber}</strong> has been generated successfully.</p>
+            <p><strong>Total Amount:</strong> Rs. ${response.data.data.totalAmount}</p>
+            <p><strong>Due Date:</strong> ${response.data.data.dueDate}</p>
+            <p>The PDF has been downloaded automatically.</p>
+          `,
+          confirmButtonColor: '#10b981'
+        });
+      }
+
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Invoice Generation Failed',
+        text: error.response?.data?.message || 'Failed to generate invoice. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
   useEffect(() => {
     getCustomers();
   }, []);
@@ -325,14 +479,20 @@ const FibernetPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Month</label>
                   <input
-                    type="text"
+                    type="month"
                     value={formData.month}
                     onChange={(e) => setFormData({...formData, month: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., January 2025"
+                    placeholder="Select month"
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.month ? 
+                      `Selected: ${new Date(formData.month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` : 
+                      'Please select a service month'
+                    }
+                  </div>
                 </div>
 
                 <div className="md:col-span-2 flex space-x-3 pt-4">
@@ -457,12 +617,25 @@ const FibernetPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
                             <button
+                              onClick={() => generateInvoice(customer)}
+                              className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-xs font-medium"
+                              title="Generate Invoice"
+                            >
+                              Invoice
+                            </button>
+                            <button
                               onClick={() => handleEdit(customer)}
                               className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
                               title="Edit"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
+                            <UpgradeToComboButton
+                              customer={customer}
+                              sourceService="fibernet"
+                              onUpgradeSuccess={getCustomers}
+                              className=""
+                            />
                             <button
                               onClick={() => handleDelete(customer.customerId)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"

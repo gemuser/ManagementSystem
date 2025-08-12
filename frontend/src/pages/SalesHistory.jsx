@@ -33,7 +33,10 @@ const SalesHistory = () => {
     productId: '',
     invoiceNo: ''
   });
-  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for recent first, 'asc' for oldest first
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [expandedInvoices, setExpandedInvoices] = useState(new Set());
 
   useEffect(() => {
     fetchSales();
@@ -190,6 +193,57 @@ const SalesHistory = () => {
   const { totalSales, totalRevenue, totalQuantity } = calculateTotals();
   const groupedSales = getGroupedSales();
 
+  // Toggle function for expanding invoice details
+  const toggleInvoiceExpansion = (invoiceNo) => {
+    setExpandedInvoices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(invoiceNo)) {
+        newSet.delete(invoiceNo);
+      } else {
+        newSet.add(invoiceNo);
+      }
+      return newSet;
+    });
+  };
+
+  // Product selection functions
+  const toggleProductSelection = (product) => {
+    setSelectedProducts(prev => {
+      const isSelected = prev.find(p => p.id === product.id);
+      if (isSelected) {
+        return prev.filter(p => p.id !== product.id);
+      } else {
+        return [...prev, { ...product, quantity: 1 }];
+      }
+    });
+  };
+
+  const updateProductQuantity = (productId, quantity) => {
+    setSelectedProducts(prev => 
+      prev.map(p => p.id === productId ? { ...p, quantity: Math.max(1, quantity) } : p)
+    );
+  };
+
+  const removeSelectedProduct = (productId) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const clearSelectedProducts = () => {
+    setSelectedProducts([]);
+  };
+
+  // Filter products based on search term
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    product.id.toString().includes(productSearchTerm)
+  );
+
+  const calculateSelectedTotal = () => {
+    return selectedProducts.reduce((total, product) => {
+      return total + (parseFloat(product.selling_price || 0) * product.quantity);
+    }, 0);
+  };
+
   const viewSaleDetails = async (sale) => {
     const productName = getProductName(sale.product_id);
     const totalAmount = parseFloat(sale.price_each) * parseInt(sale.quantity_sold);
@@ -256,11 +310,6 @@ const SalesHistory = () => {
               <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
               <input id="quantity" class="swal2-input w-full" type="number" min="1" value="1" placeholder="Enter quantity">
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">VAT Rate (%)</label>
-              <input id="vatRate" type="number" class="swal2-input w-full" placeholder="Enter VAT rate (e.g., 13 or 0)" value="13" min="0" max="100" step="0.01">
-              <small class="text-gray-500">Enter 0 for no VAT, or any percentage (e.g., 13 for 13% VAT)</small>
-            </div>
           </div>
         `,
         showCancelButton: true,
@@ -273,7 +322,6 @@ const SalesHistory = () => {
           const itemName = document.getElementById('itemName').value.trim();
           const price = parseFloat(document.getElementById('price').value);
           const quantity = parseInt(document.getElementById('quantity').value) || 1;
-          const vatRateInput = document.getElementById('vatRate').value.trim();
 
           if (!customerName) {
             Swal.showValidationMessage('Customer name is required');
@@ -287,14 +335,8 @@ const SalesHistory = () => {
             Swal.showValidationMessage('Valid price is required');
             return false;
           }
-          
-          const vatRate = parseFloat(vatRateInput);
-          if (isNaN(vatRate) || vatRate < 0 || vatRate > 100) {
-            Swal.showValidationMessage('Please enter a valid VAT rate between 0 and 100');
-            return false;
-          }
 
-          return { customerName, itemName, price, quantity, vatRate };
+          return { customerName, itemName, price, quantity };
         }
       });
 
@@ -312,19 +354,17 @@ const SalesHistory = () => {
         }
       });
 
-      // Generate VAT bill using the custom endpoint
+      // Generate bill using the custom endpoint
       const totalAmount = formValues.price * formValues.quantity;
-      const vatAmount = totalAmount * (formValues.vatRate / 100);
-      const grandTotal = totalAmount + vatAmount;
       
       const billData = {
         customerName: formValues.customerName,
         invoiceDate: new Date().toLocaleDateString(),
         itemName: `${formValues.itemName} (Qty: ${formValues.quantity})`,
         price: `Rs. ${totalAmount.toLocaleString()}`,
-        vatRate: formValues.vatRate,
-        vat: `Rs. ${vatAmount.toLocaleString()}`,
-        total: `Rs. ${grandTotal.toLocaleString()}`
+        vatRate: 0,
+        vat: `Rs. 0`,
+        total: `Rs. ${totalAmount.toLocaleString()}`
       };
 
       const response = await axios.post('/vat-bill/generate-custom', billData, {
@@ -372,19 +412,19 @@ const SalesHistory = () => {
 
       Swal.fire({
         icon: 'success',
-        title: 'VAT Bill Ready!',
-        text: `VAT bill for ${formValues.customerName} is ready for download. Choose where to save it.`,
+        title: 'Bill Ready!',
+        text: `bill for ${formValues.customerName} is ready for download. Choose where to save it.`,
         confirmButtonColor: '#10b981',
         timer: 3000,
         timerProgressBar: true
       });
 
     } catch (error) {
-      console.error('Error generating VAT bill:', error);
+      console.error('Error generating bill:', error);
       Swal.fire({
         icon: 'error',
-        title: 'VAT Bill Generation Failed',
-        text: error.response?.data?.message || 'Failed to generate VAT bill. Please try again.',
+        title: ' Bill Generation Failed',
+        text: error.response?.data?.message || 'Failed to generate bill. Please try again.',
         confirmButtonColor: '#ef4444'
       });
     }
@@ -394,7 +434,7 @@ const SalesHistory = () => {
     try {
       // Get customer name and VAT rate
       const { value: formData } = await Swal.fire({
-        title: 'Generate VAT Bill for Sale',
+        title: 'Generate Bill for Sale',
         html: `
           <div class="text-left mb-4">
             <p><strong>Invoice:</strong> ${sale.invoice_no}</p>
@@ -408,11 +448,7 @@ const SalesHistory = () => {
               <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
               <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">VAT Rate (%)</label>
-              <input id="vatRate" type="number" class="swal2-input w-full" placeholder="Enter VAT rate (e.g., 13 or 0)" value="13" min="0" max="100" step="0.01">
-              <small class="text-gray-500">Enter 0 for no VAT, or any percentage (e.g., 13 for 13% VAT)</small>
-            </div>
+           
           </div>
         `,
         showCancelButton: true,
@@ -422,46 +458,44 @@ const SalesHistory = () => {
         cancelButtonText: 'Cancel',
         preConfirm: () => {
           const name = document.getElementById('customerName').value.trim();
-          const vatRateInput = document.getElementById('vatRate').value.trim();
           
           if (!name) {
             Swal.showValidationMessage('Customer name is required');
             return false;
           }
           
-          const vatRate = parseFloat(vatRateInput);
-          if (isNaN(vatRate) || vatRate < 0 || vatRate > 100) {
-            Swal.showValidationMessage('Please enter a valid VAT rate between 0 and 100');
-            return false;
-          }
-          
           return {
-            customerName: name,
-            vatRate: vatRate
+            customerName: name
           };
         }
       });
 
       if (!formData) return;
 
-      const { customerName, vatRate } = formData;
+      const { customerName } = formData;
 
-      // Prepare sale data for VAT bill
+      // Prepare sale data for bill using the new structured format
       const totalAmount = parseFloat(sale.total_price);
-      const vatAmount = totalAmount * (vatRate / 100);
-      const grandTotal = totalAmount + vatAmount;
 
       const billData = {
         customerName,
-        itemName: `${getProductName(sale.product_id)} (${sale.quantity_sold}x)`,
-        price: totalAmount,
-        quantity: 1,
-        vatRate: vatRate
+        invoiceId: sale.invoice_no,
+        invoiceDate: new Date(sale.sale_date).toLocaleDateString('en-GB'),
+        items: [{
+          productName: getProductName(sale.product_id),
+          quantity: sale.quantity_sold,
+          price: parseFloat(sale.price_each || totalAmount / sale.quantity_sold),
+          total: totalAmount
+        }],
+        subtotal: totalAmount,
+        vatRate: 0,
+        vatAmount: 0,
+        grandTotal: totalAmount
       };
 
       // Show loading
       Swal.fire({
-        title: 'Generating VAT Bill...',
+        title: 'Generating Bill...',
         text: 'Please wait while we create your PDF document',
         allowOutsideClick: false,
         allowEscapeKey: false,
@@ -471,8 +505,8 @@ const SalesHistory = () => {
         }
       });
 
-      // Generate VAT bill
-      const response = await axios.post('/vat-bill/generate-for-sale', billData, {
+      // Generate VAT bill using the memory endpoint
+      const response = await axios.post('/vat-bill/generate-memory', billData, {
         responseType: 'blob'
       });
 
@@ -608,11 +642,6 @@ const SalesHistory = () => {
               <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
               <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">VAT Rate (%)</label>
-              <input id="vatRate" type="number" class="swal2-input w-full" placeholder="Enter VAT rate (e.g., 13 or 0)" value="13" min="0" max="100" step="0.01">
-              <small class="text-gray-500">Enter 0 for no VAT, or any percentage (e.g., 13 for 13% VAT)</small>
-            </div>
           </div>
         `,
         showCancelButton: true,
@@ -622,35 +651,27 @@ const SalesHistory = () => {
         cancelButtonText: 'Cancel',
         preConfirm: () => {
           const name = document.getElementById('customerName').value.trim();
-          const vatRateInput = document.getElementById('vatRate').value.trim();
           
           if (!name) {
             Swal.showValidationMessage('Customer name is required');
             return false;
           }
           
-          const vatRate = parseFloat(vatRateInput);
-          if (isNaN(vatRate) || vatRate < 0 || vatRate > 100) {
-            Swal.showValidationMessage('Please enter a valid VAT rate between 0 and 100');
-            return false;
-          }
-          
           return {
-            customerName: name,
-            vatRate: vatRate
+            customerName: name
           };
         }
       });
 
       if (!formData) return;
 
-      const { customerName, vatRate } = formData;
+      const { customerName } = formData;
 
       // Prepare invoice data for VAT bill generation
       const vatBillData = {
         customerName: customerName,
-        invoiceNumber: invoice.invoice_no,
-        invoiceDate: new Date(invoice.sale_date).toLocaleDateString(),
+        invoiceId: invoice.invoice_no,
+        invoiceDate: new Date(invoice.sale_date).toLocaleDateString('en-GB'),
         items: invoice.items.map(sale => {
           const product = products.find(p => p.id === sale.product_id);
           return {
@@ -662,9 +683,9 @@ const SalesHistory = () => {
           };
         }),
         subtotal: invoice.total_amount,
-        vatRate: vatRate,
-        vatAmount: invoice.total_amount * (vatRate / 100),
-        grandTotal: invoice.total_amount * (1 + (vatRate / 100))
+        vatRate: 0,
+        vatAmount: 0,
+        grandTotal: invoice.total_amount
       };
 
       // Generate VAT bill
@@ -969,117 +990,102 @@ const SalesHistory = () => {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Invoice Details
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Product
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Quantity
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Unit Price
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Total Amount
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Sale Date
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {groupedSales.map((invoice, index) => (
-                    <React.Fragment key={invoice.invoice_no}>
-                      <tr className="bg-gray-50 border-t-2 border-gray-200">
-                        <td colSpan="7" className="px-6 py-3">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <Receipt size={16} className="mr-2 text-indigo-600" />
-                              <span className="font-semibold text-gray-900">Invoice: {invoice.invoice_no}</span>
-                              <span className="ml-3 text-sm text-gray-600">
-                                {new Date(invoice.sale_date).toLocaleDateString()} at {new Date(invoice.sale_date).toLocaleTimeString()}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span className="text-sm font-medium text-gray-700">
-                                {invoice.items.length} product{invoice.items.length > 1 ? 's' : ''}, {invoice.total_items} items total
-                              </span>
-                              <span className="text-lg font-bold text-green-600">
-                                Rs. {invoice.total_amount.toFixed(2)}
-                              </span>
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => viewInvoiceDetails(invoice)}
-                                  className="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-all"
-                                  title="View invoice details"
-                                >
-                                  <Eye size={14} className="mr-1" />
-                                  View
-                                </button>
-                                <button
-                                  onClick={() => generateVATBillForInvoice(invoice)}
-                                  className="text-green-600 hover:text-green-800 font-medium text-sm flex items-center bg-green-50 hover:bg-green-100 px-2 py-1 rounded transition-all"
-                                  title="Generate VAT Bill"
-                                >
-                                  <FileText size={14} className="mr-1" />
-                                  VAT Bill
-                                </button>
-                              </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {groupedSales.map((invoice) => {
+                  const isExpanded = expandedInvoices.has(invoice.invoice_no);
+                  return (
+                    <div key={invoice.invoice_no} className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                      {/* Invoice Header - Always Visible */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Receipt size={20} className="text-blue-600" />
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{invoice.invoice_no}</h3>
+                              <p className="text-sm text-gray-500">
+                                {new Date(invoice.sale_date).toLocaleDateString()} • {invoice.items.length} items
+                              </p>
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                      {invoice.items.map((sale, itemIndex) => (
-                        <tr key={`${invoice.invoice_no}-${sale.id}`} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 pl-12">
-                            <div className="text-xs text-gray-500">
-                              Line #{itemIndex + 1}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <Package size={16} className="mr-2 text-gray-400" />
-                              <span className="text-sm text-gray-900">{getProductName(sale.product_id)}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <ShoppingCart size={16} className="mr-2 text-gray-400" />
-                              <span className="text-sm font-semibold text-gray-900">{sale.quantity_sold}</span>
-                              <span className="text-xs text-gray-500 ml-1">units</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-semibold text-gray-900">
-                              Rs. {parseFloat(sale.price_each).toFixed(2)}
+                          <div className="flex items-center space-x-3">
+                            <span className="text-lg font-bold text-green-600">
+                              Rs. {invoice.total_amount.toFixed(2)}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-bold text-green-600">
-                              Rs. {parseFloat(sale.total_price).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-xs text-gray-400">—</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-xs text-gray-400">—</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
+                            <button
+                              onClick={() => generateVATBillForInvoice(invoice)}
+                              className="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 rounded-md hover:bg-green-50 transition-all flex items-center border border-green-200"
+                              title="Generate VAT Bill"
+                            >
+                              <FileText size={14} className="mr-1" />
+                              VAT Bill
+                            </button>
+                            <button
+                              onClick={() => toggleInvoiceExpansion(invoice.invoice_no)}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded-md hover:bg-blue-50 transition-all"
+                            >
+                              {isExpanded ? 'Show Less' : 'See More'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 bg-gray-50">
+                          <div className="p-4 space-y-3">
+                            {/* Invoice Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                              <div className="text-sm">
+                                <span className="text-gray-500">Date & Time:</span>
+                                <p className="font-medium">{new Date(invoice.sale_date).toLocaleString()}</p>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-gray-500">Total Items:</span>
+                                <p className="font-medium">{invoice.total_items} units</p>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-gray-500">Total Amount:</span>
+                                <p className="font-medium text-green-600">Rs. {invoice.total_amount.toFixed(2)}</p>
+                              </div>
+                            </div>
+
+                            {/* Products List */}
+                            <div className="bg-white rounded-lg p-3">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Items Sold:</h4>
+                              <div className="space-y-2">
+                                {invoice.items.map((sale) => (
+                                  <div key={sale.id} className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-b-0">
+                                    <div className="flex-1">
+                                      <span className="font-medium text-gray-900">{getProductName(sale.product_id)}</span>
+                                      <span className="text-gray-500 ml-2">× {sale.quantity_sold}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-gray-500">Rs. {parseFloat(sale.price_each).toFixed(2)} each</span>
+                                      <p className="font-medium text-gray-900">Rs. {parseFloat(sale.total_price).toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center justify-end space-x-2 pt-2">
+                              <button
+                                onClick={() => viewInvoiceDetails(invoice)}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded-md hover:bg-blue-50 transition-all flex items-center"
+                              >
+                                <Eye size={14} className="mr-1" />
+                                View Details
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

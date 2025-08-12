@@ -20,10 +20,21 @@ export const dataRefreshEmitter = {
   
   subscribe: (callback) => {
     dataRefreshEmitter.callbacks.add(callback);
-    return () => dataRefreshEmitter.callbacks.delete(callback);
+    console.log('Subscribed to data refresh events. Total subscribers:', dataRefreshEmitter.callbacks.size);
+    return () => {
+      dataRefreshEmitter.callbacks.delete(callback);
+      console.log('Unsubscribed from data refresh events. Total subscribers:', dataRefreshEmitter.callbacks.size);
+    };
   },
   
   emit: () => {
-    dataRefreshEmitter.callbacks.forEach(callback => callback());
+    console.log('Emitting data refresh event to', dataRefreshEmitter.callbacks.size, 'subscribers');
+    dataRefreshEmitter.callbacks.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('Error in data refresh callback:', error);
+      }
+    });
   }
 };

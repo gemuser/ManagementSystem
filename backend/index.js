@@ -27,6 +27,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./auth/authRoutes'));
 app.use('/api/products', require('./inventoryManagement/routes/productsRoute'));
+app.use('/api/stock', require('./inventoryManagement/routes/stockRoute'));
 app.use('/api/sales', require('./inventoryManagement/routes/salesRoute'));
 app.use('/api/purchases', require('./inventoryManagement/routes/purchasesRoute'));
 app.use('/api/history', require('./inventoryManagement/routes/historyRoute'));
@@ -34,6 +35,7 @@ app.use('/api/vat-bill', require('./inventoryManagement/routes/vatBillRoute'));
 app.use('/api/dishhome', require('./dishomeFibernet/routes/dishhomeRoutes'));
 app.use('/api/fibernet', require('./dishomeFibernet/routes/fibernetRoutes'));
 app.use('/api/Dhfibernet', require('./dishomeFibernet/routes/dishhome_fibernetRoutes'));
+app.use('/api/invoices', require('./dishomeFibernet/routes/invoiceRoutes'));
 
 // Schema update endpoint (temporarily disabled)
 // const { updateComboSchema } = require('./database/schemaController');

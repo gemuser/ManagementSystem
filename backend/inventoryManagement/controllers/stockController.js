@@ -104,8 +104,95 @@ const createStockAdjustment = async (req, res) => {
   }
 };
 
+// Update stock with add/remove actions
+const updateStock = async (req, res) => {
+  try {
+    const { product_id, action, quantity } = req.body;
+    
+    if (!product_id || !action || !quantity) {
+      return res.status(400).send({
+        success: false,
+        message: 'Please provide product_id, action (add/remove), and quantity'
+      });
+    }
+
+    if (!['add', 'remove'].includes(action)) {
+      return res.status(400).send({
+        success: false,
+        message: 'Action must be either "add" or "remove"'
+      });
+    }
+
+    const quantityNum = parseInt(quantity);
+    if (quantityNum <= 0) {
+      return res.status(400).send({
+        success: false,
+        message: 'Quantity must be a positive number'
+      });
+    }
+
+    // Get current stock
+    const [[product]] = await db.query(
+      'SELECT total_stock, name FROM products WHERE id = ?',
+      [product_id]
+    );
+
+    if (!product) {
+      return res.status(404).send({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const currentStock = parseInt(product.total_stock || 0);
+    let newStock;
+
+    if (action === 'add') {
+      newStock = currentStock + quantityNum;
+    } else { // remove
+      newStock = currentStock - quantityNum;
+      if (newStock < 0) {
+        return res.status(400).send({
+          success: false,
+          message: 'Cannot remove more stock than available'
+        });
+      }
+    }
+
+    // Update total_stock
+    await db.query(
+      'UPDATE products SET total_stock = ? WHERE id = ?',
+      [newStock, product_id]
+    );
+
+    // Log the stock change
+    const changeType = action === 'add' ? 'stock_addition' : 'stock_removal';
+    const notes = `${action === 'add' ? 'Added' : 'Removed'} ${quantityNum} units`;
+    await logStockChange(product_id, currentStock, newStock, changeType, notes);
+
+    res.status(200).send({
+      success: true,
+      message: `Stock ${action === 'add' ? 'added' : 'removed'} successfully`,
+      data: {
+        product_name: product.name,
+        old_stock: currentStock,
+        new_stock: newStock,
+        quantity_changed: action === 'add' ? quantityNum : -quantityNum
+      }
+    });
+  } catch (err) {
+    console.error('Error updating stock:', err);
+    res.status(500).send({
+      success: false,
+      message: 'Error in updating stock',
+      error: err.message
+    });
+  }
+};
+
 module.exports = {
   logStockChange,
   getStockChanges,
-  createStockAdjustment
+  createStockAdjustment,
+  updateStock
 };

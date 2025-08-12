@@ -4,16 +4,10 @@ const db = require('../../database/db');
 const getCustomers = async (req, res) => {
     try {
         const data = await db.query('SELECT * FROM dishhome');
-        if (!data || data[0].length === 0) {
-            return res.status(404).send({
-                success: false,
-                message: 'No customer found'
-            });
-        }
         res.status(200).send({
             success: true,
-            message: 'Customers retrieved successfully',
-            data: data[0]
+            message: data[0].length > 0 ? 'Customers retrieved successfully' : 'No customers found',
+            data: data[0] || []
         });
     } catch (err) {
         console.log(err);
@@ -28,16 +22,16 @@ const getCustomers = async (req, res) => {
 // ===================== CREATE CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-        const { name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
+        const { customerId, name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
 
-        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month || !casId) {
+        if (!customerId || !name || !phoneNumber || status === undefined || !packageType || !address || !price || !month) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide all fields: name, phoneNumber, status, package, address, price, month, casId',
+                message: 'Please provide all required fields: customerId, name, phoneNumber, status, package, address, price, month',
             });
         }
 
-        // Validate numeric fields
+        // Validate price field
         if (isNaN(parseFloat(price))) {
             return res.status(400).send({
                 success: false,
@@ -45,9 +39,29 @@ const createCustomer = async (req, res) => {
             });
         }
 
+        // Validate customerId (allow alphanumeric, no need for numeric validation)
+        if (!customerId.toString().trim()) {
+            return res.status(400).send({
+                success: false,
+                message: 'Customer ID cannot be empty',
+            });
+        }
+
+        // Check if customerId already exists
+        const existingCustomer = await db.query('SELECT customerId FROM dishhome WHERE customerId = ?', [customerId]);
+        if (existingCustomer[0].length > 0) {
+            return res.status(400).send({
+                success: false,
+                message: 'Customer ID already exists. Please choose a different ID.',
+            });
+        }
+
+        // Generate CAS ID if not provided
+        const finalCasId = casId || `CAS-${customerId}-${Date.now()}`;
+
         await db.query(
-            'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?)',
-            [name, phoneNumber, status, packageType, address, price, month, casId]
+            'INSERT INTO dishhome (customerId, name, phoneNumber, status, package, address, price, month, casId, category) VALUES (?,?,?,?,?,?,?,?,?,?)',
+            [customerId, name, phoneNumber, status, packageType, address, price, month, finalCasId, 'dishhome']
         );
 
         res.status(201).send({
@@ -56,6 +70,12 @@ const createCustomer = async (req, res) => {
         });
     } catch (err) {
         console.log('Error creating customer:', err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).send({
+                success: false,
+                message: 'Customer ID already exists. Please choose a different ID.',
+            });
+        }
         res.status(500).send({
             success: false,
             message: 'Error in creating customer',
@@ -70,16 +90,19 @@ const updateCustomer = async (req, res) => {
         const id = req.params.id;
         const { name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
 
-        if (!name || !phoneNumber || !status || !packageType || !address || !price || !month || !casId) {
+        if (!name || !phoneNumber || status === undefined || !packageType || !address || !price || !month) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide all fields',
+                message: 'Please provide all required fields',
             });
         }
 
+        // Generate CAS ID if not provided
+        const finalCasId = casId || `CAS-${id}-${Date.now()}`;
+
         const data = await db.query(
             'UPDATE dishhome SET name = ?, phoneNumber = ?, status = ?, package = ?, address = ?, price = ?, month = ?, casId = ? WHERE customerId = ?',
-            [name, phoneNumber, status, packageType, address, price, month, casId, id]
+            [name, phoneNumber, status, packageType, address, price, month, finalCasId, id]
         );
 
         if (data[0].affectedRows === 0) {

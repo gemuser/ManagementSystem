@@ -11,7 +11,7 @@ import {
   Building2,
   BookOpen,
   ShoppingBag,
-  Home
+  ArrowLeft
 } from "lucide-react";
 
 const DHISidebar = () => {
@@ -19,26 +19,20 @@ const DHISidebar = () => {
     { 
       name: "Back to Home", 
       path: "/", 
-      icon: Home,
+      icon: ArrowLeft,
       description: "Return to Services"
     },
     { 
-      name: "Dashboard", 
+      name: "Home", 
       path: "/dhi/dashboard", 
       icon: LayoutDashboard,
       description: "Overview & Analytics"
     },
     { 
-      name: "Products", 
+      name: "Products & Stock", 
       path: "/dhi/products", 
       icon: Package,
-      description: "Manage Inventory"
-    },
-    { 
-      name: "Stock", 
-      path: "/dhi/stock", 
-      icon: Warehouse,
-      description: "Stock Management"
+      description: "Manage Inventory & Stock"
     },
     { 
       name: "Sales", 
@@ -47,16 +41,10 @@ const DHISidebar = () => {
       description: "Create Sales"
     },
     { 
-      name: "Purchases", 
+      name: "Purchase", 
       path: "/dhi/purchases", 
       icon: ShoppingBag,
       description: "Purchase Records"
-    },
-    { 
-      name: "Day Book", 
-      path: "/dhi/daybook", 
-      icon: BookOpen,
-      description: "Daily Records"
     },
     { 
       name: "Sales History", 
@@ -65,7 +53,7 @@ const DHISidebar = () => {
       description: "Sales Records"
     },
     { 
-      name: "Activity History", 
+      name: "History", 
       path: "/dhi/history", 
       icon: BarChart3,
       description: "All Activities"

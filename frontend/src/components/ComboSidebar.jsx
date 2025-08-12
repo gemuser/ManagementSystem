@@ -17,10 +17,10 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
           title: 'DTH Combo System',
           subtitle: 'Digital TV Combos',
           icon: Monitor,
-          colorScheme: {
-            primary: 'orange',
-            secondary: 'red'
-          },
+          bgClass: 'bg-gradient-to-b from-orange-900 via-orange-800 to-orange-900',
+          borderClass: 'border-orange-700/50',
+          buttonClass: 'bg-orange-600',
+          hoverClass: 'hover:bg-orange-700/50',
           links: [
             { 
               name: "Back to Home", 
@@ -30,7 +30,7 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
             },
             { 
               name: "Combo Selection", 
-              path: "/combo-selection", 
+              path: "/combo", 
               icon: Package2,
               description: "Choose Service Type"
             },
@@ -47,10 +47,10 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
           title: 'ITV Combo System',
           subtitle: 'Interactive TV Combos',
           icon: Zap,
-          colorScheme: {
-            primary: 'indigo',
-            secondary: 'purple'
-          },
+          bgClass: 'bg-gradient-to-b from-indigo-900 via-indigo-800 to-indigo-900',
+          borderClass: 'border-indigo-700/50',
+          buttonClass: 'bg-indigo-600',
+          hoverClass: 'hover:bg-indigo-700/50',
           links: [
             { 
               name: "Back to Home", 
@@ -60,7 +60,7 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
             },
             { 
               name: "Combo Selection", 
-              path: "/combo-selection", 
+              path: "/combo", 
               icon: Package2,
               description: "Choose Service Type"
             },
@@ -77,10 +77,10 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
           title: 'Combo System',
           subtitle: 'Package Management',
           icon: Package2,
-          colorScheme: {
-            primary: 'green',
-            secondary: 'emerald'
-          },
+          bgClass: 'bg-gradient-to-b from-green-900 via-green-800 to-green-900',
+          borderClass: 'border-green-700/50',
+          buttonClass: 'bg-green-600',
+          hoverClass: 'hover:bg-green-700/50',
           links: [
             { 
               name: "Back to Home", 
@@ -100,21 +100,20 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
   };
 
   const config = getServiceConfig();
-  const { primary } = config.colorScheme;
 
   return (
-    <div className={`fixed left-0 top-0 h-full w-72 bg-gradient-to-b from-${primary}-900 via-${primary}-800 to-${primary}-900 text-white shadow-2xl flex flex-col z-40`}>
+    <div className={`fixed left-0 top-0 h-full w-72 ${config.bgClass} text-white shadow-2xl flex flex-col z-40`}>
       {/* Header Section */}
-      <div className={`px-6 py-8 border-b border-${primary}-700/50`}>
+      <div className={`px-6 py-8 border-b ${config.borderClass}`}>
         <div className="flex items-center justify-center mb-4">
-          <div className={`p-3 bg-${primary}-600 rounded-xl shadow-lg`}>
+          <div className={`p-3 ${config.buttonClass} rounded-xl shadow-lg`}>
             <config.icon size={28} className="text-white" />
           </div>
         </div>
         <h1 className="text-xl font-bold text-center text-white leading-tight">
           {config.title}
         </h1>
-        <p className={`text-sm text-${primary}-300 text-center mt-2 font-medium`}>
+        <p className="text-sm text-gray-300 text-center mt-2 font-medium">
           {config.subtitle}
         </p>
       </div>
@@ -131,12 +130,12 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
                 className={({ isActive }) =>
                   `group flex items-center px-4 py-3 rounded-xl transition-all duration-200 ease-in-out ${
                     isActive 
-                      ? `bg-${primary}-600 shadow-lg text-white transform scale-105`
-                      : `text-${primary}-300 hover:bg-${primary}-700/50 hover:text-white hover:transform hover:scale-102`
+                      ? `${config.buttonClass} shadow-lg text-white transform scale-105`
+                      : `text-gray-300 ${config.hoverClass} hover:text-white hover:transform hover:scale-102`
                   }`
                 }
               >
-                <div className={`p-2 rounded-lg mr-3 transition-colors bg-${primary}-700 group-hover:bg-${primary}-600`}>
+                <div className={`p-2 rounded-lg mr-3 transition-colors bg-gray-700 group-hover:${config.buttonClass}`}>
                   <IconComponent size={20} />
                 </div>
                 <div className="flex-1">
@@ -150,10 +149,10 @@ const ComboSidebar = ({ serviceType = 'general' }) => {
       </nav>
       
       {/* Connection Status Section */}
-      <div className={`px-6 py-4 border-t border-${primary}-700/50 bg-${primary}-800/30`}>
+      <div className={`px-6 py-4 border-t ${config.borderClass} bg-black/20`}>
         <ConnectionStatus variant="dark" />
         <div className="mt-3 text-center">
-          <p className={`text-xs text-${primary}-400`}>
+          <p className="text-xs text-gray-400">
             © 2025 {config.title}
           </p>
         </div>

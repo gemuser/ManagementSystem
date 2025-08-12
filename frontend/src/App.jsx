@@ -3,14 +3,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import SessionTimeoutWarning from './components/SessionTimeoutWarning';
 import Dashboard from './pages/Dashboard';
-import ProductPage from './pages/ProductPage';
-import StockPage from './pages/StockPage';
+import ProductsStockPage from './pages/ProductsStockPage';
 import SalesPage from './pages/SalesPage';
 import PurchasePage from './pages/PurchasePage';
 import SalesHistory from './pages/SalesHistory';
 import HistoryPage from './pages/HistoryPage';
 import DayBook from './pages/DayBook';
-import { DishhomePage, FibernetPage, ComboPage, FibernetDashboard } from './fibernetPages';
+import ComprehensiveDayBook from './pages/ComprehensiveDayBook';
+import DishhomeDashboard from './pages/DishhomeDashboard';
+import FibernetDashboard from './pages/FibernetDashboard';
+import { DishhomePage, FibernetPage, ComboPage, FibernetDashboard as OldFibernetDashboard } from './fibernetPages';
 import LandingPage from './components/LandingPage';
 import ComboSelectionPage from './components/ComboSelectionPage';
 import './index.css';
@@ -37,12 +39,12 @@ function App() {
           } />
           <Route path="/dhi/products" element={
             <ProtectedRoute>
-              <ProductPage />
+              <ProductsStockPage />
             </ProtectedRoute>
           } />
           <Route path="/dhi/stock" element={
             <ProtectedRoute>
-              <StockPage />
+              <ProductsStockPage />
             </ProtectedRoute>
           } />
           <Route path="/dhi/sales" element={
@@ -71,10 +73,22 @@ function App() {
             </ProtectedRoute>
           } />
           
+          {/* Comprehensive Day Book */}
+          <Route path="/daybook" element={
+            <ProtectedRoute>
+              <ComprehensiveDayBook />
+            </ProtectedRoute>
+          } />
+          
           {/* Dishhome Service Routes */}
           <Route path="/dishhome" element={
             <ProtectedRoute>
               <DishhomePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dishhome-dashboard" element={
+            <ProtectedRoute>
+              <DishhomeDashboard />
             </ProtectedRoute>
           } />
           
@@ -87,6 +101,11 @@ function App() {
           <Route path="/fibernet-dashboard" element={
             <ProtectedRoute>
               <FibernetDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/fibernet-old-dashboard" element={
+            <ProtectedRoute>
+              <OldFibernetDashboard />
             </ProtectedRoute>
           } />
           
@@ -115,12 +134,12 @@ function App() {
           } />
           <Route path="/products" element={
             <ProtectedRoute>
-              <ProductPage />
+              <ProductsStockPage />
             </ProtectedRoute>
           } />
           <Route path="/stock" element={
             <ProtectedRoute>
-              <StockPage />
+              <ProductsStockPage />
             </ProtectedRoute>
           } />
           <Route path="/sales" element={

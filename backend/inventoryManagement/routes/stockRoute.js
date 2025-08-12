@@ -1,5 +1,5 @@
 const express = require('express');
-const { getStockChanges, createStockAdjustment } = require('../controllers/stockController');
+const { getStockChanges, createStockAdjustment, updateStock } = require('../controllers/stockController');
 
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.get('/changes', getStockChanges);
 
 // Create stock adjustment
 router.post('/adjust', createStockAdjustment);
+
+// Update stock (add/remove)
+router.post('/update', updateStock);
 
 module.exports = router;

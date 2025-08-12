@@ -61,42 +61,23 @@ async function generateVATBillBuffer(billData, options = {}) {
 }
 
 /**
- * Generate HTML content with VAT template background and overlaid text
+ * Generate HTML content with VAT template structure matching the provided format
  * @param {Object} billData - The data to overlay
  * @param {Object} options - Additional options for customization
  * @returns {string} HTML content
  */
 function generateHTMLContent(billData, options = {}) {
-  // Get the absolute path to the VAT template image
-  const templateImagePath = path.join(__dirname, 'assets', 'vat-template.jpg');
+  // Generate invoice number if not provided
+  const invoiceId = billData.invoiceId || generateInvoiceNumber();
+  const invoiceDate = billData.invoiceDate || new Date().toLocaleDateString('en-GB');
   
-  // Check if template exists and create base64 or use placeholder
-  let backgroundStyle = '';
-  if (fs.existsSync(templateImagePath)) {
-    try {
-      const imageBuffer = fs.readFileSync(templateImagePath);
-      const imageBase64 = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
-      backgroundStyle = `background-image: url('${imageBase64}');`;
-      console.log('📷 Using VAT template image from assets/vat-template.jpg');
-    } catch (error) {
-      console.warn('⚠️  Error reading template image, using placeholder');
-      backgroundStyle = generatePlaceholderBackground();
-    }
-  } else {
-    console.warn('⚠️  VAT template image not found at assets/vat-template.jpg, using placeholder');
-    backgroundStyle = generatePlaceholderBackground();
+  // Calculate totals if items are provided
+  let subtotal = 0;
+  if (billData.items && billData.items.length > 0) {
+    subtotal = billData.items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
+  } else if (billData.subtotal) {
+    subtotal = parseFloat(billData.subtotal);
   }
-
-  // Default positions (can be overridden via options)
-  const positions = {
-    customerName: { top: '150px', left: '100px' },
-    invoiceDate: { top: '190px', left: '100px' },
-    itemName: { top: '230px', left: '100px' },
-    price: { top: '270px', left: '100px' },
-    vatAmount: { top: '310px', left: '100px' },
-    total: { top: '350px', left: '100px' },
-    ...options.positions // Override with custom positions if provided
-  };
 
   return `
     <!DOCTYPE html>
@@ -116,54 +97,54 @@ function generateHTMLContent(billData, options = {}) {
                 font-family: 'Arial', sans-serif;
                 width: 794px;
                 height: 1123px;
-                position: relative;
-                overflow: hidden;
+                padding: 40px;
+                background: white;
             }
             
-            .vat-bill-container {
-                position: relative;
+            .invoice-container {
                 width: 100%;
                 height: 100%;
-                ${backgroundStyle}
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
+                border: 2px solid #000;
+                padding: 20px;
+                position: relative;
             }
             
-            .overlay-text {
-                position: absolute;
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            
+            .nepali-title {
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                font-family: 'Devanagari MT', 'Noto Sans Devanagari', serif;
+            }
+            
+            .invoice-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
                 font-size: 14px;
-                font-weight: 600;
-                color: #000;
-                z-index: 10;
-                white-space: nowrap;
             }
             
-            .customer-name {
-                top: ${positions.customerName.top};
-                left: ${positions.customerName.left};
+            .customer-info {
+                margin-bottom: 30px;
+                font-size: 14px;
             }
             
-            .invoice-date {
-                top: ${positions.invoiceDate.top};
-                left: ${positions.invoiceDate.left};
+            .items-section {
+                margin-bottom: 30px;
             }
             
-            .item-name {
-                top: ${positions.itemName.top};
-                left: ${positions.itemName.left};
-                max-width: 600px;
+            .items-title {
+                text-align: center;
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 20px;
             }
             
             .items-table {
-                position: absolute;
-                top: 250px;
-                left: 50px;
-                right: 50px;
-                font-size: 12px;
-            }
-            
-            .items-table table {
                 width: 100%;
                 border-collapse: collapse;
                 margin-bottom: 20px;
@@ -171,182 +152,102 @@ function generateHTMLContent(billData, options = {}) {
             
             .items-table th,
             .items-table td {
-                border: 1px solid #d1d5db;
+                border: 2px solid #000;
                 padding: 8px;
-                text-align: left;
+                text-align: center;
+                font-size: 12px;
             }
             
             .items-table th {
-                background-color: #f3f4f6;
+                background-color: #f8f9fa;
                 font-weight: bold;
             }
             
-            .items-table td:last-child,
-            .items-table th:last-child {
+            .items-table td:nth-child(2) {
+                text-align: left;
+                padding-left: 10px;
+            }
+            
+            .items-table td:nth-child(3),
+            .items-table td:nth-child(4),
+            .items-table td:nth-child(5) {
                 text-align: right;
+                padding-right: 10px;
             }
             
-            .price {
-                top: ${positions.price.top};
-                left: ${positions.price.left};
-            }
-            
-            .summary-section {
-                position: absolute;
-                bottom: 150px;
-                right: 50px;
-                background: rgba(255, 255, 255, 0.9);
-                padding: 20px;
-                border: 2px solid #d1d5db;
-                border-radius: 8px;
-                min-width: 250px;
-            }
-            
-            .summary-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                font-size: 14px;
-            }
-            
-            .summary-row.total {
-                border-top: 2px solid #374151;
-                padding-top: 10px;
+            .subtotal-section {
+                text-align: right;
                 font-size: 16px;
                 font-weight: bold;
-                color: #059669;
-            }
-            
-            .vat-amount {
-                top: ${positions.vatAmount.top};
-                left: ${positions.vatAmount.left};
-            }
-            
-            .total {
-                top: ${positions.total.top};
-                left: ${positions.total.left};
-                font-weight: bold;
-                font-size: 16px;
-                color: #d97706;
-            }
-            
-            .field-label {
-                font-weight: normal;
-                color: #374151;
-                margin-right: 8px;
-            }
-            
-            .field-value {
-                font-weight: bold;
-                color: #111827;
-            }
-
-            /* Invoice number and company info */
-            .invoice-header {
-                position: absolute;
-                top: 50px;
-                right: 50px;
-                text-align: right;
-                font-size: 12px;
-                color: #6b7280;
-            }
-
-            .invoice-number {
-                font-size: 14px;
-                font-weight: bold;
-                color: #111827;
-                margin-bottom: 5px;
+                margin-top: 20px;
             }
         </style>
     </head>
     <body>
-        <div class="vat-bill-container">
-            <!-- Invoice Header -->
-            <div class="invoice-header">
-                <div class="invoice-number">Invoice #${billData.invoiceNumber || generateInvoiceNumber()}</div>
-                <div>Management System</div>
-                <div>${billData.invoiceDate || new Date().toLocaleDateString()}</div>
-            </div>
-
-            <!-- Customer Name -->
-            <div class="overlay-text customer-name">
-                <span class="field-label">Customer:</span>
-                <span class="field-value">${billData.customerName || 'N/A'}</span>
+        <div class="invoice-container">
+            <!-- Header with Nepali Title -->
+            <div class="header">
+                <div class="nepali-title">ॐ श्री गणेशाय नमः</div>
             </div>
             
-            <!-- Invoice Date -->
-            <div class="overlay-text invoice-date">
-                <span class="field-label">Date:</span>
-                <span class="field-value">${billData.invoiceDate || new Date().toLocaleDateString()}</span>
+            <!-- Invoice Information -->
+            <div class="invoice-info">
+                <div>
+                    <strong>Invoice id: ${invoiceId}</strong>
+                </div>
+                <div>
+                    <strong>Date: ${invoiceDate}</strong>
+                </div>
             </div>
             
-            ${billData.items && billData.items.length > 1 ? 
-              // Multiple items - use table format
-              `<div class="items-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>HS Code</th>
-                      <th style="text-align: center;">Qty</th>
-                      <th style="text-align: right;">Unit Price</th>
-                      <th style="text-align: right;">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${billData.items.map(item => `
-                      <tr>
-                        <td>${item.productName || 'N/A'}</td>
-                        <td>${item.hsCode || '0000.00'}</td>
-                        <td style="text-align: center;">${item.quantity || 1}</td>
-                        <td style="text-align: right;">Rs. ${parseFloat(item.price || 0).toFixed(2)}</td>
-                        <td style="text-align: right;">Rs. ${parseFloat(item.total || 0).toFixed(2)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
+            <!-- Customer Information -->
+            <div class="customer-info">
+                <strong>Customer Name: ${billData.customerName || '_'.repeat(50)}</strong>
+            </div>
+            
+            <!-- Items Section -->
+            <div class="items-section">
+                <div class="items-title">Items Purchased</div>
+                
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>S.N</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${billData.items && billData.items.length > 0 
+                          ? billData.items.map((item, index) => `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${item.productName || item.name || ''}</td>
+                                <td>Rs. ${parseFloat(item.price || item.unit_price || 0).toFixed(2)}</td>
+                                <td>${item.quantity || 1}</td>
+                                <td>Rs. ${parseFloat(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
+                            </tr>
+                          `).join('')
+                          : `
+                            <tr>
+                                <td>1</td>
+                                <td>${billData.itemName || ''}</td>
+                                <td>Rs. ${parseFloat(billData.price || 0).toFixed(2)}</td>
+                                <td>${billData.quantity || 1}</td>
+                                <td>Rs. ${parseFloat(billData.total || billData.price || 0).toFixed(2)}</td>
+                            </tr>
+                          `
+                        }
+                    </tbody>
                 </table>
-              </div>
-              
-              <div class="summary-section">
-                <div class="summary-row">
-                  <span>Subtotal:</span>
-                  <span>Rs. ${parseFloat(billData.subtotal || 0).toFixed(2)}</span>
-                </div>
-                <div class="summary-row">
-                  <span>VAT (${billData.vatRate || 13}%):</span>
-                  <span>Rs. ${parseFloat(billData.vatAmount || 0).toFixed(2)}</span>
-                </div>
-                <div class="summary-row total">
-                  <span>TOTAL:</span>
-                  <span>Rs. ${parseFloat(billData.grandTotal || 0).toFixed(2)}</span>
-                </div>
-              </div>`
-              :
-              // Single item - use original format
-              `<!-- Item Name -->
-              <div class="overlay-text item-name">
-                  <span class="field-label">Item:</span>
-                  <span class="field-value">${billData.itemName || (billData.items && billData.items[0] ? billData.items[0].productName : 'N/A')}</span>
-              </div>
-              
-              <!-- Price -->
-              <div class="overlay-text price">
-                  <span class="field-label">Price:</span>
-                  <span class="field-value">${billData.price || (billData.items && billData.items[0] ? `Rs. ${parseFloat(billData.items[0].total || 0).toFixed(2)}` : 'N/A')}</span>
-              </div>
-              
-              <!-- VAT Amount -->
-              <div class="overlay-text vat-amount">
-                  <span class="field-label">VAT (${billData.vatRate || 13}%):</span>
-                  <span class="field-value">${billData.vat || `Rs. ${parseFloat(billData.vatAmount || 0).toFixed(2)}`}</span>
-              </div>
-              
-              <!-- Total -->
-              <div class="overlay-text total">
-                  <span class="field-label">TOTAL:</span>
-                  <span class="field-value">${billData.total || `Rs. ${parseFloat(billData.grandTotal || 0).toFixed(2)}`}</span>
-              </div>`
-            }
+            </div>
+            
+            <!-- Subtotal Section -->
+            <div class="subtotal-section">
+                Sub Total: Rs. ${parseFloat(subtotal).toFixed(2)}
+            </div>
         </div>
     </body>
     </html>
@@ -379,6 +280,38 @@ function generateInvoiceNumber() {
   return `INV-${year}${month}${day}-${time}`;
 }
 
+/**
+ * Calculate VAT amount (13% in Nepal)
+ * @param {number} amount - The amount to calculate VAT for
+ * @returns {number} VAT amount
+ */
+function calculateVAT(amount) {
+  return parseFloat(amount) * 0.13;
+}
+
+/**
+ * Calculate total with VAT
+ * @param {number} subtotal - The subtotal amount
+ * @param {number} discount - The discount amount (optional)
+ * @returns {Object} Calculation breakdown
+ */
+function calculateTotalWithVAT(subtotal, discount = 0) {
+  const discountedSubtotal = parseFloat(subtotal) - parseFloat(discount);
+  const vatAmount = calculateVAT(discountedSubtotal);
+  const grandTotal = discountedSubtotal + vatAmount;
+  
+  return {
+    subtotal: parseFloat(subtotal),
+    discount: parseFloat(discount),
+    discountedSubtotal,
+    vatAmount,
+    grandTotal
+  };
+}
+
 module.exports = {
-  generateVATBillBuffer
+  generateVATBillBuffer,
+  generateInvoiceNumber,
+  calculateVAT,
+  calculateTotalWithVAT
 };
