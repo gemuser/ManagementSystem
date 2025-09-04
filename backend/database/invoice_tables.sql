@@ -1,9 +1,5 @@
--- Add invoice tables to existing inventory_system database
--- These tables will store invoice data locally without creating a new database
-
 USE `inventory_system`;
 
--- DishHome Invoices Table
 CREATE TABLE IF NOT EXISTS `dishhome_invoices` (
   `invoice_id` int NOT NULL AUTO_INCREMENT,
   `invoice_number` varchar(50) NOT NULL UNIQUE,
