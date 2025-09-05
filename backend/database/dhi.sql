@@ -32,11 +32,10 @@ CREATE TABLE `dishhome` (
   `package` varchar(200) NOT NULL,
   `address` varchar(200) NOT NULL,
   `price` int NOT NULL,
-  `month` int NOT NULL,
+  `month` varchar(10) NOT NULL,
   `casId` varchar(45) NOT NULL,
-  PRIMARY KEY (`customerId`),
-  UNIQUE KEY `casId_UNIQUE` (`casId`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  PRIMARY KEY (`customerId`)
+) ENGINE=InnoDB AUTO_INCREMENT=1223 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -45,7 +44,7 @@ CREATE TABLE `dishhome` (
 
 LOCK TABLES `dishhome` WRITE;
 /*!40000 ALTER TABLE `dishhome` DISABLE KEYS */;
-INSERT INTO `dishhome` VALUES (2,'Ashish Pokhrel','9800000001',1,'Gold Plan','Biratnagar',1500,1,''),(3,'John Doe Updated','9876543211',1,'HD Premium Plus','456 Updated St',1800,2,'CAS001-UPDATED');
+INSERT INTO `dishhome` VALUES (12,'testt','9833333333',1,'HD Premium','testinggg',1800,'4','CAS-05555');
 /*!40000 ALTER TABLE `dishhome` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -58,20 +57,27 @@ DROP TABLE IF EXISTS `dishhome_fibernet_combo`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `dishhome_fibernet_combo` (
   `comboId` int NOT NULL AUTO_INCREMENT,
-  `dishhomeId` int NOT NULL,
-  `fibernetId` int NOT NULL,
+  `dishhomeId` int DEFAULT NULL,
+  `fibernetId` int DEFAULT NULL,
+  `customerName` varchar(100) DEFAULT NULL,
+  `phoneNumber` varchar(15) DEFAULT NULL,
+  `casId` varchar(50) DEFAULT NULL,
   `totalPrice` int NOT NULL,
   `status` tinyint(1) NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `category` varchar(45) NOT NULL,
-  `phoneNumber` varchar(15) NOT NULL,
-  `casId` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `sourceService` varchar(50) DEFAULT NULL,
+  `upgradeType` varchar(50) DEFAULT NULL,
+  `month` varchar(7) DEFAULT NULL,
+  `fibernetPackage` varchar(100) DEFAULT NULL,
+  `customerAddress` text,
+  `dishhomePackage` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`comboId`),
   KEY `dishhomeId` (`dishhomeId`),
   KEY `fibernetId` (`fibernetId`),
-  CONSTRAINT `dishhome_fibernet_combo_ibfk_1` FOREIGN KEY (`dishhomeId`) REFERENCES `dishhome` (`customerId`) ON DELETE CASCADE,
-  CONSTRAINT `dishhome_fibernet_combo_ibfk_2` FOREIGN KEY (`fibernetId`) REFERENCES `fibernet` (`customerId`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  CONSTRAINT `fk_combo_dishhome` FOREIGN KEY (`dishhomeId`) REFERENCES `dishhome` (`customerId`) ON DELETE CASCADE,
+  CONSTRAINT `fk_combo_fibernet` FOREIGN KEY (`fibernetId`) REFERENCES `fibernet` (`customerId`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -80,7 +86,7 @@ CREATE TABLE `dishhome_fibernet_combo` (
 
 LOCK TABLES `dishhome_fibernet_combo` WRITE;
 /*!40000 ALTER TABLE `dishhome_fibernet_combo` DISABLE KEYS */;
-INSERT INTO `dishhome_fibernet_combo` VALUES (6,2,1,2900,1,'2025-08-02 17:02:55','Premium Updated Again','',NULL),(7,3,1,3000,1,'2025-08-02 17:03:17','Enterprise Package','',NULL),(8,2,1,3500,1,'2025-08-02 17:07:43','Premium Plus','',NULL);
+INSERT INTO `dishhome_fibernet_combo` VALUES (17,NULL,1,'Ashish Updated','9800000001','cas-444',12000,1,'combo','2025-09-05 06:55:52',NULL,NULL,'4','Platinum Plan','Kathmandu',NULL),(18,12,NULL,'testt','9833333333','CAS-05555',1200,1,'combo','2025-09-05 07:07:48',NULL,NULL,'12',NULL,'testinggg','HD Premium'),(21,NULL,NULL,'Ashish Pokhrel','9817373803','CAS-423',12000,1,'combo','2025-09-05 07:38:17',NULL,'ITV','24',NULL,'biratnagar',NULL);
 /*!40000 ALTER TABLE `dishhome_fibernet_combo` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -110,7 +116,7 @@ CREATE TABLE `fibernet` (
 
 LOCK TABLES `fibernet` WRITE;
 /*!40000 ALTER TABLE `fibernet` DISABLE KEYS */;
-INSERT INTO `fibernet` VALUES (1,'Ashish Updated','9800000001',1,'Platinum Plan','Kathmandu',2000,2),(2,'Ashish Updated','9800000001',1,'Platinum Plan','Kathmandu',2000,2);
+INSERT INTO `fibernet` VALUES (1,'Ashish Updated','9800000001',1,'Platinum Plan','Kathmandu',2000,2);
 /*!40000 ALTER TABLE `fibernet` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -130,7 +136,7 @@ CREATE TABLE `products` (
   `hsCode` varchar(100) DEFAULT NULL,
   `total_stock` int DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -139,7 +145,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'Nivea Face Cream','Skincare',350.00,'NVC123','3304.99',60),(2,'Dove Shampoo 200ml','Haircare',450.00,'DOV200','3305.10',100),(3,'Colgate Toothpaste 100g','Oralcare',120.00,'COL100','3306.20',80),(4,'Himalaya Face Wash','Skincare',300.00,'HIMFW1','3304.99',60);
+INSERT INTO `products` VALUES (1,'Nivea Face Cream','Skincare',350.00,'NVC123','3304.99',60),(2,'Dove Shampoo 200ml','Haircare',450.00,'DOV200','3305.10',130),(3,'Colgate Toothpaste 100g','Oralcare',120.00,'COL100','3306.20',80),(4,'Himalaya Face Wash','Skincare',300.00,'HIMFW1','3304.99',60),(6,'Mobile','General',200000.00,'N/A','N/A',10),(7,'laptop','General',500000.00,'N/A','N/A',10);
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -162,7 +168,7 @@ CREATE TABLE `purchases` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `notes` text,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -171,6 +177,7 @@ CREATE TABLE `purchases` (
 
 LOCK TABLES `purchases` WRITE;
 /*!40000 ALTER TABLE `purchases` DISABLE KEYS */;
+INSERT INTO `purchases` VALUES (1,'PUR-001','HEllo','Ashish',122,122.00,14884.00,'2025-09-05 08:37:50','2025-09-05 08:37:50',''),(2,'PUR-002','Test','laptop',10,500000.00,5000000.00,'2025-09-05 08:44:13','2025-09-05 08:44:13',''),(3,'PUR-002','Test','Mobile',10,200000.00,2000000.00,'2025-09-05 08:44:13','2025-09-05 08:44:13','');
 /*!40000 ALTER TABLE `purchases` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -192,7 +199,7 @@ CREATE TABLE `sales` (
   PRIMARY KEY (`id`),
   KEY `product_id` (`product_id`),
   CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -201,6 +208,7 @@ CREATE TABLE `sales` (
 
 LOCK TABLES `sales` WRITE;
 /*!40000 ALTER TABLE `sales` DISABLE KEYS */;
+INSERT INTO `sales` VALUES (11,'12',1,10,370.00,3700.00,'2025-09-05 07:59:28'),(12,'12',2,1,450.00,450.00,'2025-09-05 07:59:28');
 /*!40000 ALTER TABLE `sales` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -213,4 +221,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-02 23:18:39
+-- Dump completed on 2025-09-05 21:17:01

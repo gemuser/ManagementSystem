@@ -7,7 +7,8 @@ const {
   updatePurchase,
   deletePurchase,
   getPurchaseById,
-  generateInvoiceNumber
+  generateInvoiceNumber,
+  generatePurchaseInvoice
 } = require('../controllers/purchasesController');
 
 // Apply authentication middleware to all routes
@@ -18,6 +19,9 @@ router.get('/list', getAllPurchases);
 
 // GET /purchases/generate-invoice - Generate next invoice number
 router.get('/generate-invoice', generateInvoiceNumber);
+
+// GET /purchases/invoice/:invoice_no - Generate purchase invoice PDF
+router.get('/invoice/:invoice_no', generatePurchaseInvoice);
 
 // GET /purchases/:id - Get purchase by ID
 router.get('/:id', getPurchaseById);

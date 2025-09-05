@@ -80,7 +80,7 @@ const LandingPage = () => {
               <Zap className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Global Powerpoint Solution</h1>
+              <h1 className="text-xl font-bold text-white">GPP</h1>
               <p className="text-sm text-purple-200">Management System</p>
             </div>
           </div>
@@ -120,7 +120,7 @@ const LandingPage = () => {
           {/* Hero Section */}
           <div className="text-center mb-16">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent mb-6">
-              Global Powerpoint Solution
+            GPP
             </h1>
             <p className="text-xl text-gray-300 mb-4">
               Complete Management System for Your Business

@@ -118,6 +118,7 @@ const generateDishhomeInvoice = async (req, res) => {
         // Generate PDF using VAT bill logic
         const pdfBuffer = await generateVATBillBuffer(invoiceData, {
             title: 'DishHome Invoice',
+            billType: 'dishhome',
             serviceBased: true
         });
 
@@ -260,6 +261,7 @@ const generateFibernetInvoice = async (req, res) => {
         // Generate PDF using VAT bill logic
         const pdfBuffer = await generateVATBillBuffer(invoiceData, {
             title: 'Fibernet Invoice',
+            billType: 'fibernet',
             serviceBased: true
         });
 

@@ -38,9 +38,7 @@ const UpgradeToComboButton = ({
       setCustomerId(customer.customerId);
       setCustomerData(customer);
       setStep(2); // Skip lookup step
-      if (sourceService === 'dishhome') {
-        setSelectedOption('DTH');
-      }
+      // Don't auto-set option - let user choose for both services
     }
   }, [customer, sourceService]);
 
@@ -63,10 +61,7 @@ const UpgradeToComboButton = ({
         if (customer) {
           setCustomerData(customer);
           setStep(2);
-          // Auto-set option for DishHome customers
-          if (sourceService === 'dishhome') {
-            setSelectedOption('DTH');
-          }
+          // Don't auto-set option - let user choose
         } else {
           Swal.fire('Error', 'Customer not found', 'error');
         }
@@ -81,8 +76,8 @@ const UpgradeToComboButton = ({
 
   const handleNextStep = () => {
     if (step === 2) {
-      if (sourceService === 'fibernet' && !selectedOption) {
-        Swal.fire('Error', 'Please select ITV or DTH option', 'error');
+      if (!selectedOption) {
+        Swal.fire('Error', 'Please select combo type (DTH or ITV)', 'error');
         return;
       }
       setStep(3);
@@ -103,15 +98,15 @@ const UpgradeToComboButton = ({
         fibernetId: sourceService === 'fibernet' ? customerData.customerId : '',
         totalPrice: parseFloat(comboData.totalPrice),
         month: comboData.month,
-        upgradeType: sourceService === 'dishhome' ? 'DTH' : selectedOption,
+        upgradeType: selectedOption, // Use selected option for both services
         sourceService: sourceService,
         customerName: customerData.name, // Explicitly pass customer name
         customerAddress: customerData.address, // Pass customer address
         phoneNumber: customerData.phoneNumber, // Pass phone number
         casId: customerData.casId || null, // Pass CAS ID if available
         status: 1, // Set as active
-        dishhomePackage: sourceService === 'dishhome' ? customerData.package : `${sourceService === 'dishhome' ? 'DTH' : selectedOption} TV Service`,
-        fibernetPackage: sourceService === 'fibernet' ? customerData.package : `${sourceService === 'dishhome' ? 'DTH' : selectedOption} Internet Service`
+        dishhomePackage: sourceService === 'dishhome' ? customerData.package : `${selectedOption} TV Service`,
+        fibernetPackage: sourceService === 'fibernet' ? customerData.package : `${selectedOption} Internet Service`
       };
 
       await axios.post('/Dhfibernet/create', comboPayload);
@@ -212,62 +207,69 @@ const UpgradeToComboButton = ({
                   </div>
                 </div>
 
-                {sourceService === 'fibernet' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Select Combo Type *
+                {/* Combo Type Selection - Show for both services */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Select Combo Type *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className={`flex flex-col items-center space-y-2 cursor-pointer p-4 border-2 rounded-lg transition-all ${
+                      selectedOption === 'ITV' 
+                        ? 'border-purple-500 bg-purple-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="comboType"
+                        value="ITV"
+                        checked={selectedOption === 'ITV'}
+                        onChange={(e) => setSelectedOption(e.target.value)}
+                        className="text-purple-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Wifi className="h-5 w-5 text-purple-600" />
+                        <span className="font-medium">ITV</span>
+                      </div>
+                      <span className="text-xs text-gray-600 text-center">
+                        {sourceService === 'dishhome' ? 'DishHome + Internet' : 'Internet + TV'}
+                      </span>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className={`flex flex-col items-center space-y-2 cursor-pointer p-4 border-2 rounded-lg transition-all ${
-                        selectedOption === 'ITV' 
-                          ? 'border-purple-500 bg-purple-50' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="comboType"
-                          value="ITV"
-                          checked={selectedOption === 'ITV'}
-                          onChange={(e) => setSelectedOption(e.target.value)}
-                          className="text-purple-500"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Tv className="h-5 w-5 text-purple-600" />
-                          <span className="font-medium">ITV</span>
-                        </div>
-                        <span className="text-xs text-gray-600 text-center">Internet + TV</span>
-                      </label>
-                      <label className={`flex flex-col items-center space-y-2 cursor-pointer p-4 border-2 rounded-lg transition-all ${
-                        selectedOption === 'DTH' 
-                          ? 'border-purple-500 bg-purple-50' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="comboType"
-                          value="DTH"
-                          checked={selectedOption === 'DTH'}
-                          onChange={(e) => setSelectedOption(e.target.value)}
-                          className="text-purple-500"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Package2 className="h-5 w-5 text-purple-600" />
-                          <span className="font-medium">DTH</span>
-                        </div>
-                        <span className="text-xs text-gray-600 text-center">Direct-to-Home</span>
-                      </label>
+                    <label className={`flex flex-col items-center space-y-2 cursor-pointer p-4 border-2 rounded-lg transition-all ${
+                      selectedOption === 'DTH' 
+                        ? 'border-purple-500 bg-purple-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="comboType"
+                        value="DTH"
+                        checked={selectedOption === 'DTH'}
+                        onChange={(e) => setSelectedOption(e.target.value)}
+                        className="text-purple-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Tv className="h-5 w-5 text-purple-600" />
+                        <span className="font-medium">DTH</span>
+                      </div>
+                      <span className="text-xs text-gray-600 text-center">
+                        {sourceService === 'fibernet' ? 'Fibernet + DTH' : 'Direct-to-Home'}
+                      </span>
+                    </label>
+                  </div>
+                  
+                  {/* Explanation based on source service */}
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="text-sm text-blue-800">
+                      <div className="font-medium mb-1">
+                        Converting from {sourceService === 'dishhome' ? 'DishHome' : 'Fibernet'}:
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <div>• <strong>ITV:</strong> {sourceService === 'dishhome' ? 'Keep DishHome + Add Internet' : 'Keep Internet + Add TV service'}</div>
+                        <div>• <strong>DTH:</strong> {sourceService === 'fibernet' ? 'Keep Internet + Add DTH service' : 'Enhanced DTH package'}</div>
+                      </div>
                     </div>
                   </div>
-                )}
-
-                {sourceService === 'dishhome' && (
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-800">
-                      <Package2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Auto-selected: DTH Combo</span>
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 <button
                   onClick={handleNextStep}

@@ -24,10 +24,10 @@ const createCustomer = async (req, res) => {
     try {
         const { customerId, name, phoneNumber, status, package: packageType, address, price, month, casId } = req.body;
 
-        if (!customerId || !name || !phoneNumber || status === undefined || !packageType || !address || !price || !month) {
+        if (!name || !phoneNumber || status === undefined || !packageType || !address || !price || !month) {
             return res.status(400).send({
                 success: false,
-                message: 'Please provide all required fields: customerId, name, phoneNumber, status, package, address, price, month',
+                message: 'Please provide all required fields: name, phoneNumber, status, package, address, price, month',
             });
         }
 
@@ -39,34 +39,51 @@ const createCustomer = async (req, res) => {
             });
         }
 
-        // Validate customerId (allow alphanumeric, no need for numeric validation)
-        if (!customerId.toString().trim()) {
-            return res.status(400).send({
-                success: false,
-                message: 'Customer ID cannot be empty',
-            });
-        }
+        // Validate customerId if provided (check if it's within INT range)
+        if (customerId) {
+            const customerIdNum = parseInt(customerId);
+            if (isNaN(customerIdNum) || customerIdNum > 2147483647 || customerIdNum < 1) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Customer ID must be a valid number within range (1 to 2,147,483,647). For large numbers, the system will auto-generate an ID.',
+                });
+            }
 
-        // Check if customerId already exists
-        const existingCustomer = await db.query('SELECT customerId FROM dishhome WHERE customerId = ?', [customerId]);
-        if (existingCustomer[0].length > 0) {
-            return res.status(400).send({
-                success: false,
-                message: 'Customer ID already exists. Please choose a different ID.',
-            });
+            // Check if customerId already exists
+            const existingCustomer = await db.query('SELECT customerId FROM dishhome WHERE customerId = ?', [customerIdNum]);
+            if (existingCustomer[0].length > 0) {
+                return res.status(400).send({
+                    success: false,
+                    message: 'Customer ID already exists. Please choose a different ID.',
+                });
+            }
         }
 
         // Generate CAS ID if not provided
-        const finalCasId = casId || `CAS-${customerId}-${Date.now()}`;
+        const finalCasId = casId || `CAS-${customerId || 'AUTO'}-${Date.now()}`;
 
-        await db.query(
-            'INSERT INTO dishhome (customerId, name, phoneNumber, status, package, address, price, month, casId, category) VALUES (?,?,?,?,?,?,?,?,?,?)',
-            [customerId, name, phoneNumber, status, packageType, address, price, month, finalCasId, 'dishhome']
-        );
+        let query, params;
+        if (customerId && parseInt(customerId) <= 2147483647) {
+            // Use provided customerId if within range
+            query = 'INSERT INTO dishhome (customerId, name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?,?)';
+            params = [parseInt(customerId), name, phoneNumber, status, packageType, address, price, month, finalCasId];
+        } else {
+            // Auto-generate customerId
+            query = 'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?)';
+            params = [name, phoneNumber, status, packageType, address, price, month, finalCasId];
+        }
+
+        const [result] = await db.query(query, params);
 
         res.status(201).send({
             success: true,
             message: 'Customer created successfully',
+            data: {
+                customerId: customerId && parseInt(customerId) <= 2147483647 ? parseInt(customerId) : result.insertId,
+                name,
+                phoneNumber,
+                casId: finalCasId
+            }
         });
     } catch (err) {
         console.log('Error creating customer:', err);

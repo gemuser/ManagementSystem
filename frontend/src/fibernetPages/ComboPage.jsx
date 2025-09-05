@@ -18,7 +18,8 @@ import {
   Tv,
   Wifi,
   Users,
-  Hash
+  Hash,
+  FileText
 } from 'lucide-react';
 
 const ComboPage = () => {
@@ -37,6 +38,8 @@ const ComboPage = () => {
   const getInitialTab = () => {
     if (location.pathname.includes('/combo/dth')) return 'DTH';
     if (location.pathname.includes('/combo/itv')) return 'ITV';
+    if (location.pathname.includes('/combo/all')) return 'ALL';
+    if (location.pathname === '/combo') return 'ALL';
     return 'ALL';
   };
   
@@ -45,7 +48,9 @@ const ComboPage = () => {
   // Update tab when route changes
   useEffect(() => {
     const newTab = location.pathname.includes('/combo/dth') ? 'DTH' : 
-                   location.pathname.includes('/combo/itv') ? 'ITV' : 'ALL';
+                   location.pathname.includes('/combo/itv') ? 'ITV' :
+                   location.pathname.includes('/combo/all') ? 'ALL' :
+                   location.pathname === '/combo' ? 'ALL' : 'ALL';
     setActiveTab(newTab);
   }, [location.pathname]);
 
@@ -55,10 +60,19 @@ const ComboPage = () => {
 
     // Filter by active tab first
     if (activeTab === 'DTH') {
-      filtered = filtered.filter(combo => combo.upgradeType === 'DTH');
+      // DTH customers: those with upgradeType 'DTH' OR those with only dishhomeId
+      filtered = filtered.filter(combo => 
+        combo.upgradeType === 'DTH' || 
+        (combo.dishhomeId && combo.dishhomeId !== null && !combo.upgradeType)
+      );
     } else if (activeTab === 'ITV') {
-      filtered = filtered.filter(combo => combo.upgradeType === 'ITV');
+      // ITV customers: those with upgradeType 'ITV' OR those with only fibernetId  
+      filtered = filtered.filter(combo => 
+        combo.upgradeType === 'ITV' || 
+        (combo.fibernetId && combo.fibernetId !== null && !combo.upgradeType)
+      );
     }
+    // For 'ALL' tab, show all combos (no filtering)
 
     // Then filter by search term
     if (searchTerm.trim()) {
@@ -70,6 +84,8 @@ const ComboPage = () => {
           combo.comboId?.toString().includes(searchTerm) ||
           combo.totalPrice?.toString().includes(searchTerm) ||
           combo.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          combo.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          combo.phoneNumber?.includes(searchTerm) ||
           (dishhomeCustomer && dishhomeCustomer.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (fibernetCustomer && fibernetCustomer.name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
@@ -81,8 +97,14 @@ const ComboPage = () => {
 
   // Get counts for each tab
   const allCount = combos.length;
-  const dthCount = combos.filter(combo => combo.upgradeType === 'DTH').length;
-  const itvCount = combos.filter(combo => combo.upgradeType === 'ITV').length;
+  const dthCount = combos.filter(combo => 
+    combo.upgradeType === 'DTH' || 
+    (combo.dishhomeId && combo.dishhomeId !== null && !combo.upgradeType)
+  ).length;
+  const itvCount = combos.filter(combo => 
+    combo.upgradeType === 'ITV' || 
+    (combo.fibernetId && combo.fibernetId !== null && !combo.upgradeType)
+  ).length;
 
   // Fetch data
   const fetchData = async () => {
@@ -198,6 +220,47 @@ const ComboPage = () => {
           confirmButtonColor: '#ef4444'
         });
       }
+    }
+  };
+
+  // Handle bill generation
+  const handleGenerateBill = async (combo) => {
+    try {
+      const response = await axios.get(`/combo-bill/generate/${combo.comboId}`, {
+        responseType: 'blob' // Important for PDF download
+      });
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename
+      const customerName = (combo.customerName || 'combo-customer').replace(/\s+/g, '-');
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `combo-bill-${customerName}-${combo.comboId}-${timestamp}.pdf`);
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Bill Generated!',
+        text: `Bill for ${combo.customerName || 'Combo Customer'} has been generated and downloaded.`,
+        confirmButtonColor: '#10b981'
+      });
+
+    } catch (error) {
+      console.error('Error generating bill:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to generate bill. Please try again.',
+        confirmButtonColor: '#ef4444'
+      });
     }
   };
 
@@ -382,12 +445,14 @@ const ComboPage = () => {
                               <div className="text-sm text-gray-500">
                                 {combo.phoneNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded mt-1 inline-block">
-                                {combo.dishhomePackage || 'N/A'}
-                              </div>
+                              {combo.dishhomeId && (
+                                <div className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded mt-1 inline-block">
+                                  DTH ID: {combo.dishhomeId} • {combo.dishhomePackage || 'Standard Package'}
+                                </div>
+                              )}
                               {combo.upgradeType && (
                                 <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
-                                  {combo.upgradeType} • From {combo.sourceService}
+                                  {combo.upgradeType} • From {combo.sourceService || 'N/A'}
                                 </div>
                               )}
                             </div>
@@ -400,9 +465,16 @@ const ComboPage = () => {
                               <div className="text-sm text-gray-500">
                                 {combo.phoneNumber || 'N/A'}
                               </div>
-                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
-                                {combo.fibernetPackage || 'N/A'}
-                              </div>
+                              {combo.fibernetId && (
+                                <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
+                                  ITV ID: {combo.fibernetId} • {combo.fibernetPackage || 'Standard Package'}
+                                </div>
+                              )}
+                              {combo.customerAddress && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  📍 {combo.customerAddress}
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -426,6 +498,13 @@ const ComboPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
+                              <button
+                                onClick={() => handleGenerateBill(combo)}
+                                className="text-green-600 hover:text-green-900 p-1 rounded"
+                                title="Generate Bill"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => handleEdit(combo)}
                                 className="text-indigo-600 hover:text-indigo-900 p-1 rounded"

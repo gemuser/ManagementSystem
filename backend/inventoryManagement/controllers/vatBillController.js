@@ -42,10 +42,13 @@ const generateVATBillForSale = async (req, res) => {
 
     // Generate unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `vat-bill-${customerName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+    const filename = `bill-${customerName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
 
     // Generate the VAT bill PDF in memory
-    const pdfBuffer = await generateVATBillBuffer(billData);
+    const pdfBuffer = await generateVATBillBuffer(billData, {
+      billType: 'inventory',
+      title: 'Inventory Bill'
+    });
 
     // Send the PDF file as response (without attachment header to prevent auto-download)
     res.setHeader('Content-Type', 'application/pdf');
@@ -53,10 +56,10 @@ const generateVATBillForSale = async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('Error generating VAT bill:', error);
+    console.error('Error generating  bill:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to generate VAT bill',
+      message: 'Failed to generate  bill',
       error: error.message
     });
   }
@@ -108,7 +111,10 @@ const generateVATBillMemory = async (req, res) => {
     };
 
     // Generate the VAT bill PDF in memory
-    const pdfBuffer = await generateVATBillBuffer(billData);
+    const pdfBuffer = await generateVATBillBuffer(billData, {
+      billType: 'inventory',
+      title: 'Inventory Bill'
+    });
 
     // Send the PDF file as response (without attachment header to prevent auto-download)
     res.setHeader('Content-Type', 'application/pdf');
@@ -143,10 +149,13 @@ const generateCustomVATBill = async (req, res) => {
 
     // Generate unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `custom-vat-bill-${billData.customerName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+    const filename = `custom-bill-${billData.customerName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
 
     // Generate the VAT bill PDF in memory
-    const pdfBuffer = await generateVATBillBuffer(billData);
+    const pdfBuffer = await generateVATBillBuffer(billData, {
+      billType: 'inventory',
+      title: 'Custom Inventory Bill'
+    });
 
     // Send the PDF file as response (without attachment header to prevent auto-download)
     res.setHeader('Content-Type', 'application/pdf');
@@ -240,10 +249,10 @@ const downloadVATBill = async (req, res) => {
     fileStream.pipe(res);
 
   } catch (error) {
-    console.error('Error downloading VAT bill:', error);
+    console.error('Error downloading  bill:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to download VAT bill',
+      message: 'Failed to download  bill',
       error: error.message
     });
   }

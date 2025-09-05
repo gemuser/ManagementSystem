@@ -71,6 +71,31 @@ function generateHTMLContent(billData, options = {}) {
   const invoiceId = billData.invoiceId || generateInvoiceNumber();
   const invoiceDate = billData.invoiceDate || new Date().toLocaleDateString('en-GB');
   
+  // Determine border color and background color based on bill type or title
+  let borderColor = '#000'; // Default black
+  let backgroundColor = 'white'; // Default white background
+  const billType = options.billType || options.title || '';
+  
+  if (billType.toLowerCase().includes('inventory')) {
+    borderColor = '#800080'; // Purple for Inventory bills
+    backgroundColor = '#E6D7FF'; // Light purple background for Inventory bills
+  } else if (billType.toLowerCase().includes('dhi') || billType.toLowerCase().includes('combo')) {
+    borderColor = '#0066CC'; // Blue for DHI/Combo bills
+    backgroundColor = '#E6F3FF'; // Light blue background for DHI/Combo bills
+  } else if (billType.toLowerCase().includes('dishhome')) {
+    borderColor = '#FF0000'; // Red for DishHome bills
+    backgroundColor = '#FFE6E6'; // Light red background for DishHome bills
+  } else if (billType.toLowerCase().includes('fibernet')) {
+    borderColor = '#000000'; // Black for Fibernet bills
+    backgroundColor = '#F5F5F5'; // Light gray background for Fibernet bills
+  } else if (billType.toLowerCase().includes('purchase')) {
+    borderColor = '#FFA500'; // Orange for purchase bills
+    backgroundColor = '#FFF4E6'; // Light orange background for Purchase bills
+  } else {
+    borderColor = '#008000'; // Green for other bills
+    backgroundColor = '#E6FFE6'; // Light green background for other bills
+  }
+  
   // Calculate totals if items are provided
   let subtotal = 0;
   if (billData.items && billData.items.length > 0) {
@@ -85,7 +110,7 @@ function generateHTMLContent(billData, options = {}) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>VAT Bill</title>
+        <title>Bill</title>
         <style>
             * {
                 margin: 0;
@@ -98,15 +123,16 @@ function generateHTMLContent(billData, options = {}) {
                 width: 794px;
                 height: 1123px;
                 padding: 40px;
-                background: white;
+                background: ${backgroundColor};
             }
             
             .invoice-container {
                 width: 100%;
                 height: 100%;
-                border: 2px solid #000;
+                border: 2px solid ${borderColor};
                 padding: 20px;
                 position: relative;
+                background: white;
             }
             
             .header {
@@ -152,7 +178,7 @@ function generateHTMLContent(billData, options = {}) {
             
             .items-table th,
             .items-table td {
-                border: 2px solid #000;
+                border: 2px solid #000000;
                 padding: 8px;
                 text-align: center;
                 font-size: 12px;

@@ -291,7 +291,7 @@ const SalesHistory = () => {
     try {
       // Get VAT bill details from user
       const { value: formValues } = await Swal.fire({
-        title: 'Generate VAT Bill',
+        title: 'Generate Bill',
         html: `
           <div class="space-y-4 text-left">
             <div>
@@ -315,7 +315,7 @@ const SalesHistory = () => {
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Generate VAT Bill',
+        confirmButtonText: 'Generate Bill',
         cancelButtonText: 'Cancel',
         preConfirm: () => {
           const customerName = document.getElementById('customerName').value.trim();
@@ -367,13 +367,13 @@ const SalesHistory = () => {
         total: `Rs. ${totalAmount.toLocaleString()}`
       };
 
-      const response = await axios.post('/vat-bill/generate-custom', billData, {
+      const response = await axios.post('/bill/generate-custom', billData, {
         responseType: 'blob'
       });
 
       // Create blob and show save dialog
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const suggestedFilename = `VAT-Bill-${formValues.customerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const suggestedFilename = `Bill-${formValues.customerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       
       // Use the File System Access API if available, fallback to traditional download
       if ('showSaveFilePicker' in window) {
@@ -454,7 +454,7 @@ const SalesHistory = () => {
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Generate VAT Bill',
+        confirmButtonText: 'Generate  Bill',
         cancelButtonText: 'Cancel',
         preConfirm: () => {
           const name = document.getElementById('customerName').value.trim();
@@ -506,13 +506,13 @@ const SalesHistory = () => {
       });
 
       // Generate VAT bill using the memory endpoint
-      const response = await axios.post('/vat-bill/generate-memory', billData, {
+      const response = await axios.post('/bill/generate-memory', billData, {
         responseType: 'blob'
       });
 
       // Create blob and show save dialog
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const suggestedFilename = `VAT-Bill-${sale.invoice_no}-${customerName.replace(/\s+/g, '-')}.pdf`;
+      const suggestedFilename = `Bill-${sale.invoice_no}-${customerName.replace(/\s+/g, '-')}.pdf`;
       
       // Use the File System Access API if available, fallback to traditional download
       if ('showSaveFilePicker' in window) {
@@ -628,7 +628,7 @@ const SalesHistory = () => {
     try {
       // Get customer name and VAT rate
       const { value: formData } = await Swal.fire({
-        title: 'Generate VAT Bill for Invoice',
+        title: 'Generate  Bill for Invoice',
         html: `
           <div class="text-left mb-4">
             <p><strong>Invoice:</strong> ${invoice.invoice_no}</p>
@@ -647,7 +647,7 @@ const SalesHistory = () => {
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Generate VAT Bill',
+        confirmButtonText: 'Generate Bill',
         cancelButtonText: 'Cancel',
         preConfirm: () => {
           const name = document.getElementById('customerName').value.trim();
@@ -689,12 +689,12 @@ const SalesHistory = () => {
       };
 
       // Generate VAT bill
-      const response = await axios.post('/vat-bill/generate-memory', vatBillData, {
+      const response = await axios.post('/bill/generate-memory', vatBillData, {
         responseType: 'blob'
       });
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const suggestedFilename = `VAT-Bill-${invoice.invoice_no}-${customerName.replace(/\s+/g, '-')}.pdf`;
+      const suggestedFilename = `Bill-${invoice.invoice_no}-${customerName.replace(/\s+/g, '-')}.pdf`;
 
       // Use File System Access API if available for better save experience
       if ('showSaveFilePicker' in window) {
@@ -768,7 +768,7 @@ const SalesHistory = () => {
             <button
               onClick={generateStandaloneVATBill}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm"
-              title="Generate VAT Bill"
+              title="Generate  Bill"
             >
               <FileText size={16} className="mr-2" />
               VAT Bill
@@ -1015,10 +1015,10 @@ const SalesHistory = () => {
                             <button
                               onClick={() => generateVATBillForInvoice(invoice)}
                               className="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 rounded-md hover:bg-green-50 transition-all flex items-center border border-green-200"
-                              title="Generate VAT Bill"
+                              title="Generate Bill"
                             >
                               <FileText size={14} className="mr-1" />
-                              VAT Bill
+                              Bill
                             </button>
                             <button
                               onClick={() => toggleInvoiceExpansion(invoice.invoice_no)}

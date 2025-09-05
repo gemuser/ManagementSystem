@@ -112,7 +112,12 @@ function App() {
           {/* Combo Service Routes */}
           <Route path="/combo" element={
             <ProtectedRoute>
-              <ComboSelectionPage />
+              <ComboPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/combo/all" element={
+            <ProtectedRoute>
+              <ComboPage />
             </ProtectedRoute>
           } />
           <Route path="/combo/dth" element={
@@ -123,6 +128,11 @@ function App() {
           <Route path="/combo/itv" element={
             <ProtectedRoute>
               <ComboPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/combo-selection" element={
+            <ProtectedRoute>
+              <ComboSelectionPage />
             </ProtectedRoute>
           } />
           

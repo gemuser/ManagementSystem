@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../api/axios';
+import Sidebar from '../components/Sidebar';
 import DHISidebar from '../components/DHISidebar';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import Swal from 'sweetalert2';
@@ -13,16 +14,24 @@ import {
   Trash2,
   Edit3,
   Building,
-  Calendar
+  Calendar,
+  FileText,
+  X,
+  Download
 } from 'lucide-react';
 
 const PurchasePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
+  const [purchaseMode, setPurchaseMode] = useState('single'); // 'single' or 'multiple'
+  
+  // Check if we're in DHI context
+  const isDHIContext = location.pathname.startsWith('/dhi');
   
   const [purchaseForm, setPurchaseForm] = useState({
     invoice_no: '',
@@ -31,6 +40,14 @@ const PurchasePage = () => {
     quantity_purchased: '',
     price_per_unit: '',
     notes: ''
+  });
+
+  // For multiple items
+  const [cartItems, setCartItems] = useState([]);
+  const [currentItem, setCurrentItem] = useState({
+    product_name: '',
+    quantity_purchased: '',
+    price_per_unit: ''
   });
 
   useEffect(() => {
@@ -77,6 +94,13 @@ const PurchasePage = () => {
       price_per_unit: '',
       notes: ''
     });
+    setCartItems([]);
+    setCurrentItem({
+      product_name: '',
+      quantity_purchased: '',
+      price_per_unit: ''
+    });
+    setPurchaseMode('single');
     setShowAddForm(true);
   };
 
@@ -96,41 +120,87 @@ const PurchasePage = () => {
   const handleSubmitPurchase = async (e) => {
     e.preventDefault();
     
-    if (!purchaseForm.supplier_name || !purchaseForm.product_name || !purchaseForm.quantity_purchased || !purchaseForm.price_per_unit) {
-      Swal.fire('Error', 'Please fill in all required fields', 'error');
-      return;
-    }
-
-    try {
-      const purchaseData = {
-        ...purchaseForm,
-        quantity_purchased: parseInt(purchaseForm.quantity_purchased),
-        price_per_unit: parseFloat(purchaseForm.price_per_unit)
-      };
-
-      if (editingPurchase) {
-        await axios.put(`/purchases/${editingPurchase.id}`, purchaseData);
-        Swal.fire('Success', 'Purchase updated successfully!', 'success');
-      } else {
-        await axios.post('/purchases/add', purchaseData);
-        Swal.fire('Success', 'Purchase added successfully!', 'success');
+    if (purchaseMode === 'single') {
+      // Single item purchase
+      if (!purchaseForm.supplier_name || !purchaseForm.product_name || !purchaseForm.quantity_purchased || !purchaseForm.price_per_unit) {
+        Swal.fire('Error', 'Please fill in all required fields', 'error');
+        return;
       }
 
-      setShowAddForm(false);
-      setPurchaseForm({
-        invoice_no: '',
-        supplier_name: '',
-        product_name: '',
-        quantity_purchased: '',
-        price_per_unit: '',
-        notes: ''
-      });
-      setEditingPurchase(null);
-      fetchData();
-      dataRefreshEmitter.emit();
-    } catch (err) {
-      console.error('Error saving purchase:', err);
-      Swal.fire('Error', 'Failed to save purchase', 'error');
+      try {
+        const purchaseData = {
+          ...purchaseForm,
+          quantity_purchased: parseInt(purchaseForm.quantity_purchased),
+          price_per_unit: parseFloat(purchaseForm.price_per_unit)
+        };
+
+        if (editingPurchase) {
+          await axios.put(`/purchases/${editingPurchase.id}`, purchaseData);
+          Swal.fire('Success', 'Purchase updated successfully!', 'success');
+        } else {
+          await axios.post('/purchases/add', purchaseData);
+          Swal.fire('Success', 'Purchase added successfully!', 'success');
+        }
+
+        setShowAddForm(false);
+        setPurchaseForm({
+          invoice_no: '',
+          supplier_name: '',
+          product_name: '',
+          quantity_purchased: '',
+          price_per_unit: '',
+          notes: ''
+        });
+        setEditingPurchase(null);
+        fetchData();
+        dataRefreshEmitter.emit();
+      } catch (err) {
+        console.error('Error saving purchase:', err);
+        Swal.fire('Error', 'Failed to save purchase', 'error');
+      }
+    } else {
+      // Multiple items purchase
+      if (!purchaseForm.supplier_name || cartItems.length === 0) {
+        Swal.fire('Error', 'Please add supplier name and at least one item', 'error');
+        return;
+      }
+
+      try {
+        const purchaseData = {
+          invoice_no: purchaseForm.invoice_no,
+          supplier_name: purchaseForm.supplier_name,
+          items: cartItems.map(item => ({
+            product_name: item.product_name,
+            quantity_purchased: parseInt(item.quantity_purchased),
+            price_per_unit: parseFloat(item.price_per_unit)
+          })),
+          notes: purchaseForm.notes
+        };
+
+        await axios.post('/purchases/add', purchaseData);
+        Swal.fire('Success', `Purchase with ${cartItems.length} items added successfully!`, 'success');
+
+        setShowAddForm(false);
+        setPurchaseForm({
+          invoice_no: '',
+          supplier_name: '',
+          product_name: '',
+          quantity_purchased: '',
+          price_per_unit: '',
+          notes: ''
+        });
+        setCartItems([]);
+        setCurrentItem({
+          product_name: '',
+          quantity_purchased: '',
+          price_per_unit: ''
+        });
+        fetchData();
+        dataRefreshEmitter.emit();
+      } catch (err) {
+        console.error('Error saving multiple purchases:', err);
+        Swal.fire('Error', 'Failed to save purchases', 'error');
+      }
     }
   };
 
@@ -158,11 +228,87 @@ const PurchasePage = () => {
     }
   };
 
+  const handleGenerateBill = async (invoiceNo) => {
+    try {
+      const response = await axios.get(`/purchases/invoice/${invoiceNo}`, {
+        responseType: 'blob'
+      });
+
+      // Get filename from response headers or use default
+      const filename = response.headers['x-suggested-filename'] || `Purchase-Invoice-${invoiceNo}.pdf`;
+
+      // Create blob link to download the PDF
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire('Success', 'Purchase invoice downloaded successfully!', 'success');
+    } catch (err) {
+      console.error('Error generating purchase invoice:', err);
+      Swal.fire('Error', 'Failed to generate purchase invoice', 'error');
+    }
+  };
+
+  // Multiple items functions
+  const addItemToCart = () => {
+    if (!currentItem.product_name || !currentItem.quantity_purchased || !currentItem.price_per_unit) {
+      Swal.fire('Error', 'Please fill in all item fields', 'error');
+      return;
+    }
+
+    const newItem = {
+      id: Date.now(), // Simple ID for cart management
+      product_name: currentItem.product_name,
+      quantity_purchased: parseInt(currentItem.quantity_purchased),
+      price_per_unit: parseFloat(currentItem.price_per_unit),
+      total_amount: parseInt(currentItem.quantity_purchased) * parseFloat(currentItem.price_per_unit)
+    };
+
+    setCartItems([...cartItems, newItem]);
+    setCurrentItem({
+      product_name: '',
+      quantity_purchased: '',
+      price_per_unit: ''
+    });
+  };
+
+  const removeItemFromCart = (itemId) => {
+    setCartItems(cartItems.filter(item => item.id !== itemId));
+  };
+
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => total + item.total_amount, 0);
+  };
+
   const filteredPurchases = purchases.filter(purchase =>
     purchase.invoice_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     purchase.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     purchase.product_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Group purchases by invoice number for bill generation
+  const groupedPurchases = filteredPurchases.reduce((acc, purchase) => {
+    const invoiceNo = purchase.invoice_no;
+    if (!acc[invoiceNo]) {
+      acc[invoiceNo] = {
+        invoice_no: invoiceNo,
+        supplier_name: purchase.supplier_name,
+        purchase_date: purchase.purchase_date,
+        items: [],
+        total_amount: 0
+      };
+    }
+    acc[invoiceNo].items.push(purchase);
+    acc[invoiceNo].total_amount += parseFloat(purchase.total_amount);
+    return acc;
+  }, {});
+
+  const invoiceGroups = Object.values(groupedPurchases);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -177,7 +323,7 @@ const PurchasePage = () => {
   if (loading) {
     return (
       <div className="flex">
-        <DHISidebar />
+        {isDHIContext ? <DHISidebar /> : <Sidebar />}
         <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -190,18 +336,20 @@ const PurchasePage = () => {
 
   return (
     <div className="flex">
-      <DHISidebar />
+      {isDHIContext ? <DHISidebar /> : <Sidebar />}
       <main className="flex-1 ml-72 p-6 bg-gray-50 min-h-screen">
         
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="bg-purple-600 p-3 rounded-xl mr-4">
+              <div className={`p-3 rounded-xl mr-4 ${isDHIContext ? 'bg-blue-600' : 'bg-purple-600'}`}>
                 <ShoppingBag size={32} className="text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-1">Purchases</h1>
+                <h1 className="text-4xl font-bold text-gray-900 mb-1">
+                  {isDHIContext ? 'DHI Purchases' : 'Purchases'}
+                </h1>
                 <p className="text-gray-600 text-lg">Manage your purchase records</p>
               </div>
             </div>
@@ -215,7 +363,9 @@ const PurchasePage = () => {
               </button>
               <button
                 onClick={handleAddPurchase}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center transition-all"
+                className={`px-4 py-2 rounded-lg flex items-center transition-all text-white ${
+                  isDHIContext ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+                }`}
               >
                 <Plus size={16} className="mr-2" />
                 Add Purchase
@@ -241,11 +391,44 @@ const PurchasePage = () => {
         {/* Add/Edit Purchase Form */}
         {showAddForm && (
           <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingPurchase ? 'Edit Purchase' : 'Add New Purchase'}
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingPurchase ? 'Edit Purchase' : 'Add New Purchase'}
+              </h2>
+              
+              {!editingPurchase && (
+                <div className="flex items-center space-x-4">
+                  <label className="text-sm font-medium text-gray-700">Purchase Mode:</label>
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseMode('single')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                        purchaseMode === 'single'
+                          ? `${isDHIContext ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      Single Item
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseMode('multiple')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                        purchaseMode === 'multiple'
+                          ? `${isDHIContext ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      Multiple Items
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             
-            <form onSubmit={handleSubmitPurchase} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Common fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
                 <input
@@ -268,96 +451,327 @@ const PurchasePage = () => {
                   required
                 />
               </div>
+            </div>
 
+            {purchaseMode === 'single' ? (
+                /* Single Item Form */
+              <form onSubmit={handleSubmitPurchase}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                    <input
+                      type="text"
+                      value={purchaseForm.product_name}
+                      onChange={(e) => setPurchaseForm({...purchaseForm, product_name: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter product name"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <input
+                      type="number"
+                      value={purchaseForm.quantity_purchased}
+                      onChange={(e) => setPurchaseForm({...purchaseForm, quantity_purchased: e.target.value})}
+                      className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                      placeholder="Enter quantity"
+                      min="1"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (Rs.)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={purchaseForm.price_per_unit}
+                      onChange={(e) => setPurchaseForm({...purchaseForm, price_per_unit: e.target.value})}
+                      className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                      placeholder="Enter price"
+                      min="0"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                  <input
+                    type="text"
+                    value={purchaseForm.quantity_purchased && purchaseForm.price_per_unit 
+                      ? `Rs. ${(parseFloat(purchaseForm.quantity_purchased) * parseFloat(purchaseForm.price_per_unit)).toFixed(2)}`
+                      : 'Rs. 0.00'}
+                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
+                    disabled
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                  <textarea
+                    value={purchaseForm.notes}
+                    onChange={(e) => setPurchaseForm({...purchaseForm, notes: e.target.value})}
+                    className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                    placeholder="Enter any additional notes..."
+                    rows="3"
+                  />
+                </div>                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setEditingPurchase(null);
+                      setPurchaseForm({
+                        invoice_no: '',
+                        supplier_name: '',
+                        product_name: '',
+                        quantity_purchased: '',
+                        price_per_unit: '',
+                        notes: ''
+                      });
+                    }}
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={`px-6 py-2 rounded-lg transition-all text-white ${
+                      isDHIContext ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
+                  >
+                    {editingPurchase ? 'Update Purchase' : 'Add Purchase'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Multiple Items Form */
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                <input
-                  type="text"
-                  value={purchaseForm.product_name}
-                  onChange={(e) => setPurchaseForm({...purchaseForm, product_name: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter product name"
-                  required
-                />
-              </div>
+                {/* Add Item Section */}
+                <div className="border border-gray-200 rounded-lg p-4 mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Add Items</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                      <input
+                        type="text"
+                        value={currentItem.product_name}
+                        onChange={(e) => setCurrentItem({...currentItem, product_name: e.target.value})}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter product name"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                <input
-                  type="number"
-                  value={purchaseForm.quantity_purchased}
-                  onChange={(e) => setPurchaseForm({...purchaseForm, quantity_purchased: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter quantity"
-                  min="1"
-                  required
-                />
-              </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        value={currentItem.quantity_purchased}
+                        onChange={(e) => setCurrentItem({...currentItem, quantity_purchased: e.target.value})}
+                        className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                        placeholder="Quantity"
+                        min="1"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (Rs.)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={purchaseForm.price_per_unit}
-                  onChange={(e) => setPurchaseForm({...purchaseForm, price_per_unit: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter price"
-                  min="0"
-                  required
-                />
-              </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Price per Unit (Rs.)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={currentItem.price_per_unit}
+                        onChange={(e) => setCurrentItem({...currentItem, price_per_unit: e.target.value})}
+                        className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                        placeholder="Price"
+                        min="0"
+                      />
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
-                <input
-                  type="text"
-                  value={purchaseForm.quantity_purchased && purchaseForm.price_per_unit 
-                    ? `Rs. ${(parseFloat(purchaseForm.quantity_purchased) * parseFloat(purchaseForm.price_per_unit)).toFixed(2)}`
-                    : 'Rs. 0.00'}
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
-                  disabled
-                />
-              </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                      <button
+                        type="button"
+                        onClick={addItemToCart}
+                        className={`w-full p-3 rounded-lg transition-all text-white ${
+                          isDHIContext ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'
+                        }`}
+                      >
+                        <Plus size={16} className="inline mr-1" />
+                        Add Item
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                <textarea
-                  value={purchaseForm.notes}
-                  onChange={(e) => setPurchaseForm({...purchaseForm, notes: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter any additional notes..."
-                  rows="3"
-                />
-              </div>
+                {/* Cart Items */}
+                {cartItems.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg p-4 mb-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Items to Purchase ({cartItems.length})</h3>
+                    <div className="space-y-2">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                          <div className="flex-1 grid grid-cols-4 gap-4">
+                            <div>
+                              <span className="text-sm font-medium text-gray-900">{item.product_name}</span>
+                            </div>
+                            <div>
+                              <span className="text-sm text-gray-600">Qty: {item.quantity_purchased}</span>
+                            </div>
+                            <div>
+                              <span className="text-sm text-gray-600">Rs. {item.price_per_unit.toFixed(2)}/unit</span>
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-green-600">Rs. {item.total_amount.toFixed(2)}</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeItemFromCart(item.id)}
+                            className="ml-4 text-red-600 hover:text-red-800 p-1"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-medium text-gray-900">Total Amount:</span>
+                        <span className="text-xl font-bold text-green-600">Rs. {getCartTotal().toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              <div className="md:col-span-2 lg:col-span-3 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingPurchase(null);
-                    setPurchaseForm({
-                      invoice_no: '',
-                      supplier_name: '',
-                      product_id: '',
-                      quantity_purchased: '',
-                      price_per_unit: '',
-                      notes: ''
-                    });
-                  }}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all"
-                >
-                  {editingPurchase ? 'Update Purchase' : 'Add Purchase'}
-                </button>
+                {/* Notes */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                  <textarea
+                    value={purchaseForm.notes}
+                    onChange={(e) => setPurchaseForm({...purchaseForm, notes: e.target.value})}
+                    className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 ${isDHIContext ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                    placeholder="Enter any additional notes..."
+                    rows="3"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setCartItems([]);
+                      setCurrentItem({
+                        product_name: '',
+                        quantity_purchased: '',
+                        price_per_unit: ''
+                      });
+                      setPurchaseForm({
+                        invoice_no: '',
+                        supplier_name: '',
+                        product_name: '',
+                        quantity_purchased: '',
+                        price_per_unit: '',
+                        notes: ''
+                      });
+                    }}
+                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitPurchase}
+                    disabled={cartItems.length === 0}
+                    className={`px-6 py-2 rounded-lg transition-all text-white ${
+                      cartItems.length === 0
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : isDHIContext 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
+                  >
+                    Save All Items ({cartItems.length})
+                  </button>
+                </div>
               </div>
-            </form>
+            )}
+          </div>
+        )}
+
+        {/* Purchase Invoice Summary */}
+        {invoiceGroups.length > 0 && (
+          <div className="bg-white rounded-lg shadow mb-6">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">
+                Purchase Invoice Summary ({invoiceGroups.length} Invoices)
+              </h2>
+              <p className="text-gray-600 mt-1">Download bills for complete invoices</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Number</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {invoiceGroups.map((invoice) => (
+                    <tr key={invoice.invoice_no} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${isDHIContext ? 'text-blue-600' : 'text-purple-600'}`}>
+                          {invoice.invoice_no}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Building size={16} className="text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-900">{invoice.supplier_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {invoice.items.length} item{invoice.items.length !== 1 ? 's' : ''}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-green-600">
+                          Rs. {invoice.total_amount.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar size={16} className="mr-1" />
+                          {formatDate(invoice.purchase_date)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleGenerateBill(invoice.invoice_no)}
+                          className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md transition-all ${
+                            isDHIContext 
+                              ? 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' 
+                              : 'text-white bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
+                          } focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                          title="Download Purchase Invoice"
+                        >
+                          <Download size={16} className="mr-2" />
+                          Download Bill
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -365,8 +779,9 @@ const PurchasePage = () => {
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">
-              Purchase Records ({filteredPurchases.length})
+              Detailed Purchase Records ({filteredPurchases.length} Items)
             </h2>
+            <p className="text-gray-600 mt-1">Individual purchase line items with edit/delete options</p>
           </div>
           
           {filteredPurchases.length === 0 ? (
@@ -394,7 +809,9 @@ const PurchasePage = () => {
                   {filteredPurchases.map((purchase) => (
                     <tr key={purchase.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-purple-600">{purchase.invoice_no}</span>
+                        <span className={`text-sm font-medium ${isDHIContext ? 'text-blue-600' : 'text-purple-600'}`}>
+                          {purchase.invoice_no}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -427,6 +844,13 @@ const PurchasePage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleGenerateBill(purchase.invoice_no)}
+                            className={`${isDHIContext ? 'text-blue-600 hover:text-blue-900' : 'text-purple-600 hover:text-purple-900'} p-1 rounded transition-colors`}
+                            title={`Download Invoice ${purchase.invoice_no}`}
+                          >
+                            <Download size={16} />
+                          </button>
                           <button
                             onClick={() => handleEditPurchase(purchase)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded transition-colors"
