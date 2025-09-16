@@ -24,6 +24,7 @@ const SalesPage = () => {
   const [products, setProducts] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [invoiceNo, setInvoiceNo] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [searchFilters, setSearchFilters] = useState({
     name: '',
@@ -39,10 +40,11 @@ const SalesPage = () => {
     
     // Subscribe to data refresh events
     const unsubscribe = dataRefreshEmitter.subscribe(async () => {
-      console.log('Data refresh event received in SalesPage');
-      setRefreshing(true);
-      await fetchProducts(true); // Force refresh when receiving events
-      setRefreshing(false);
+      try {
+        emitDataRefresh();
+      } catch (error) {
+        console.error('Error emitting data refresh:', error);
+      }
     });
     
     return unsubscribe;
@@ -279,6 +281,16 @@ const SalesPage = () => {
       return;
     }
 
+    if (!customerName.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Missing Customer Name',
+        text: 'Please enter customer name',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
+    }
+
     if (!invoiceNo) {
       Swal.fire({
         icon: 'warning',
@@ -425,6 +437,7 @@ const SalesPage = () => {
         
         await axios.post('/sales/create', {
           invoice_no: invoiceNo,
+          customer_name: customerName,
           product_id: product.id,
           quantity_sold: product.quantity,
           sale_price: product.customPrice,
@@ -481,6 +494,7 @@ const SalesPage = () => {
       // Reset form and refresh data
       setSelectedProducts([]);
       setInvoiceNo('');
+      setCustomerName('');
       
       // Immediately emit refresh event, then refresh local data
       dataRefreshEmitter.emit(); // Notify other components first
@@ -699,6 +713,18 @@ const SalesPage = () => {
               {/* Invoice Details */}
               <div className="border-b border-gray-100 p-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-3">Invoice Details</h3>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter customer name"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">
                     Invoice Number
@@ -852,20 +878,20 @@ const SalesPage = () => {
               <button
                 onClick={processSale}
                 className={`w-full px-4 py-3 rounded-lg font-semibold text-base flex items-center justify-center transition-all duration-200 ${
-                  !invoiceNo || selectedProducts.length === 0
+                  !customerName.trim() || !invoiceNo || selectedProducts.length === 0
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
                     : 'bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow-md'
                 }`}
-                disabled={!invoiceNo || selectedProducts.length === 0}
+                disabled={!customerName.trim() || !invoiceNo || selectedProducts.length === 0}
               >
                 <Receipt size={18} className="mr-2" />
-                {!invoiceNo || selectedProducts.length === 0 ? 'Complete Sale' : `Complete Sale • Rs. ${calculateTotalAmount().toFixed(2)}`}
+                {!customerName.trim() || !invoiceNo || selectedProducts.length === 0 ? 'Complete Sale' : `Complete Sale • Rs. ${calculateTotalAmount().toFixed(2)}`}
               </button>
               
-              {(!invoiceNo || selectedProducts.length === 0) && (
+              {(!customerName.trim() || !invoiceNo || selectedProducts.length === 0) && (
                 <div className="mt-3 text-center">
                   <p className="text-xs text-red-500">
-                    {!invoiceNo ? 'Invoice number required' : 'Select products to continue'}
+                    {!customerName.trim() ? 'Customer name required' : !invoiceNo ? 'Invoice number required' : 'Select products to continue'}
                   </p>
                 </div>
               )}

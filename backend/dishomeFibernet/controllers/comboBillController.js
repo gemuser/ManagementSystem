@@ -97,7 +97,6 @@ const generateComboBill = async (req, res) => {
     // Send the PDF buffer
     res.send(pdfBuffer);
 
-    console.log(`Combo bill generated successfully for combo ID: ${comboId}`);
 
   } catch (error) {
     console.error('Error generating combo bill:', error);
@@ -188,7 +187,6 @@ const generateCustomComboBill = async (req, res) => {
     // Send the PDF buffer
     res.send(pdfBuffer);
 
-    console.log(`Custom combo bill generated successfully for customer: ${customerName}`);
 
   } catch (error) {
     console.error('Error generating custom combo bill:', error);

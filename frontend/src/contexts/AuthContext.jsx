@@ -39,7 +39,6 @@ export const AuthProvider = ({ children }) => {
 
       // Check if token is expired locally first
       if (isTokenExpired(token)) {
-        console.log('Token expired locally');
         logout();
         return false;
       }
@@ -54,41 +53,52 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Token validation failed:', error);
-      logout();
-      return false;
+      // Don't logout on network errors during page refresh
+      // Only logout on 401/403 responses
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+        return false;
+      }
+      // For network errors, assume token is still valid
+      return true;
     }
   };
 
   useEffect(() => {
     // Check if user is logged in on app start
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    const userInfo = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
-    const rememberMe = localStorage.getItem('rememberMe') === 'true';
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      const userInfo = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
 
-    if (token && userInfo) {
-      try {
-        // Check if token is expired
-        if (isTokenExpired(token)) {
-          console.log('Token expired on app start');
+      if (token && userInfo) {
+        try {
+          // Check if token is expired
+          if (isTokenExpired(token)) {
+            logout();
+            setLoading(false);
+            return;
+          }
+
+          const parsedUser = JSON.parse(userInfo);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+          // Set axios default header for authenticated requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Verify token with backend (don't await this to avoid blocking)
+          checkTokenValidity().catch(() => {
+            // If backend verification fails, still keep user logged in
+            // The token might be valid but backend might be temporarily unavailable
+          });
+        } catch (error) {
+          console.error('Error parsing user info:', error);
           logout();
-          setLoading(false);
-          return;
         }
-
-        const parsedUser = JSON.parse(userInfo);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        // Set axios default header for authenticated requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Verify token with backend
-        checkTokenValidity();
-      } catch (error) {
-        console.error('Error parsing user info:', error);
-        logout();
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   // Set up periodic token validation
@@ -99,7 +109,6 @@ export const AuthProvider = ({ children }) => {
     const interval = setInterval(() => {
       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       if (token && isTokenExpired(token)) {
-        console.log('Token expired during session');
         logout();
       }
     }, 5 * 60 * 1000); // 5 minutes

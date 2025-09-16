@@ -14,7 +14,8 @@ import {
   BookOpen,
   BarChart3,
   Calendar,
-  FileText
+  FileText,
+  Calculator
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -158,50 +159,54 @@ const LandingPage = () => {
           </div>
 
           {/* Histories Section */}
-          {isAuthenticated && (
-            <div className="mt-16 flex justify-end">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-white mb-2">Quick Access</h3>
-                  <p className="text-gray-300">Access comprehensive day book records</p>
+          <div className="mt-16 flex justify-end">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-2xl">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-white mb-2">Quick Access</h3>
+                <p className="text-gray-300">Access comprehensive records and accounting tools</p>
+                {!isAuthenticated && (
+                  <p className="text-amber-300 text-sm mt-2">
+                    <LogIn className="h-4 w-4 inline mr-1" />
+                    Login required to access these features
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-center space-x-6">
+                {/* Day Book Button */}
+                <div
+                  onClick={() => isAuthenticated ? navigate('/daybook') : navigate('/login')}
+                  className="group bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 cursor-pointer transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  <div className="text-center">
+                    <BookOpen className="h-12 w-12 text-white mx-auto mb-3" />
+                    <h4 className="text-white font-bold text-lg">Day Book</h4>
+                    <p className="text-orange-100 text-sm">All Records & Analytics</p>
+                  </div>
                 </div>
-                
-                <div className="flex justify-center">
-                  {/* Single Day Book Button */}
-                  <div
-                    onClick={() => navigate('/daybook')}
-                    className="group bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 cursor-pointer transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <div className="text-center">
-                      <BookOpen className="h-12 w-12 text-white mx-auto mb-3" />
-                      <h4 className="text-white font-bold text-lg">Day Book</h4>
-                      <p className="text-orange-100 text-sm">All Records & Analytics</p>
-                    </div>
+
+                {/* Ledger Button */}
+                <div
+                  onClick={() => isAuthenticated ? navigate('/ledger') : navigate('/login')}
+                  className="group bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-6 cursor-pointer transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  <div className="text-center">
+                    <Calculator className="h-12 w-12 text-white mx-auto mb-3" />
+                    <h4 className="text-white font-bold text-lg">Ledger</h4>
+                    <p className="text-green-100 text-sm">Accounting Transactions</p>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Authentication Note */}
-          {!isAuthenticated && (
-            <div className="text-center mt-12">
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 inline-block">
-                <p className="text-amber-300 text-sm">
-                  <LogIn className="h-4 w-4 inline mr-2" />
-                  Login required to access management features
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Footer */}
+          <div className="text-center py-8 mt-12">
+            <p className="text-sm text-gray-400">
+              © 2025 Global Powerpoint Solution. All rights reserved.
+            </p>
+          </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center py-8">
-        <p className="text-sm text-gray-400">
-          © 2025 Global Powerpoint Solution. All rights reserved.
-        </p>
       </div>
     </div>
   );

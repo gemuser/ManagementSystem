@@ -10,6 +10,7 @@ import SalesHistory from './pages/SalesHistory';
 import HistoryPage from './pages/HistoryPage';
 import DayBook from './pages/DayBook';
 import ComprehensiveDayBook from './pages/ComprehensiveDayBook';
+import LedgerPage from './pages/LedgerPage';
 import DishhomeDashboard from './pages/DishhomeDashboard';
 import FibernetDashboard from './pages/FibernetDashboard';
 import { DishhomePage, FibernetPage, ComboPage, FibernetDashboard as OldFibernetDashboard } from './fibernetPages';
@@ -77,6 +78,20 @@ function App() {
           <Route path="/daybook" element={
             <ProtectedRoute>
               <ComprehensiveDayBook />
+            </ProtectedRoute>
+          } />
+
+          {/* Ledger Page */}
+          <Route path="/ledger" element={
+            <ProtectedRoute>
+              <LedgerPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Ledger Page - DHI Section (alternative access) */}
+          <Route path="/dhi/ledger" element={
+            <ProtectedRoute>
+              <LedgerPage />
             </ProtectedRoute>
           } />
           

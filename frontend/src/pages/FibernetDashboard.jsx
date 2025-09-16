@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import ImprovedCustomerForm from '../components/ImprovedCustomerForm';
-import UpgradeToComboButton from '../components/UpgradeToComboButton';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
 import { 
@@ -443,10 +442,6 @@ const FibernetDashboard = () => {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Customer
               </button>
-              <UpgradeToComboButton 
-                sourceService="fibernet"
-                onUpgradeSuccess={getCustomers}
-              />
             </div>
           </div>
         </div>

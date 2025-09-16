@@ -32,7 +32,6 @@ const getProducts = async (req, res) => {
         })
     }
     catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'Error in getting products',
@@ -80,7 +79,6 @@ const createProducts = async (req, res) => {
         })
     }
     catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'error in creating products',
@@ -161,7 +159,6 @@ const updateProducts = async (req, res) => {
         });
     }
     catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'Error in updating product',
@@ -186,7 +183,6 @@ const deleteProducts = async (req, res) => {
         })
     }
     catch(err){
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'error in deleting product',

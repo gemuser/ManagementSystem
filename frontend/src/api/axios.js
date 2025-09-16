@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: "http://localhost:8000/api",
+    baseURL: "/api",
     headers: {
         "Content-Type": "application/json",
     }
@@ -10,7 +10,8 @@ const instance = axios.create({
 // Request interceptor to add auth token to requests
 instance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('authToken');
+        // Check both localStorage and sessionStorage for token
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,16 +27,19 @@ instance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token is invalid or expired
+            // Token is invalid or expired - clear both storage types
             localStorage.removeItem('authToken');
             localStorage.removeItem('userInfo');
             localStorage.removeItem('loginTime');
+            localStorage.removeItem('rememberMe');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('userInfo');
+            sessionStorage.removeItem('loginTime');
             
             // Show user-friendly message
             if (error.response?.data?.message?.includes('expired') || 
                 error.response?.data?.message?.includes('Invalid token')) {
-                console.log('Session expired. Please login again.');
-                // You could show a toast notification here
+                // Session expired, will redirect to login
             }
             
             // Redirect to login page if not already there

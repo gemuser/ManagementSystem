@@ -43,8 +43,11 @@ const ProductsStockPage = () => {
     fetchProducts();
     
     const unsubscribe = dataRefreshEmitter.subscribe(() => {
-      console.log('Data refresh event received in ProductsStockPage');
-      fetchProducts(true); // Force refresh when receiving events
+      try {
+        emitDataRefresh();
+      } catch (error) {
+        console.error('Error emitting data refresh:', error);
+      }
     });
     
     return unsubscribe;

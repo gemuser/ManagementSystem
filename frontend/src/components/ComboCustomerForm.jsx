@@ -202,12 +202,8 @@ const ComboCustomerForm = ({
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submission data:', formData);
     if (validateForm()) {
-      console.log('Validation passed, submitting:', formData);
       onSubmit(formData);
-    } else {
-      console.log('Validation failed, errors:', errors);
     }
   };
 

@@ -12,7 +12,6 @@ const getSales = async (req, res) => {
             data: data
         });
     } catch(err){
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'Error in getting sales',
@@ -23,7 +22,7 @@ const getSales = async (req, res) => {
 
 const createSales = async (req, res) => {
   try {
-    const { invoice_no, product_id, quantity_sold, sale_price } = req.body;
+  const { invoice_no, customer_name, product_id, quantity_sold, sale_price } = req.body;
 
     // Validate inputs
     if (!invoice_no || !product_id || !quantity_sold) {
@@ -79,8 +78,8 @@ const createSales = async (req, res) => {
 
     // Insert into sales
     await db.query(
-      'INSERT INTO sales (invoice_no, product_id, quantity_sold, price_each, total_price) VALUES (?, ?, ?, ?, ?)',
-      [invoice_no, product_id, quantity_sold, price_each, total_price]
+      'INSERT INTO sales (invoice_no, customer_name, product_id, quantity_sold, price_each, total_price) VALUES (?, ?, ?, ?, ?, ?)',
+      [invoice_no, customer_name, product_id, quantity_sold, price_each, total_price]
     );
 
     res.status(201).send({
@@ -88,6 +87,7 @@ const createSales = async (req, res) => {
       message: 'Sale recorded successfully',
       sale: {
         invoice_no,
+        customer_name,
         product_id,
         quantity_sold,
         price_each,

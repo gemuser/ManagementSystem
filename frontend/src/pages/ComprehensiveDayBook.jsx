@@ -15,10 +15,7 @@ import {
   Eye,
   ArrowLeft,
   Filter,
-  CalendarDays,
-  TrendingDown,
-  CreditCard,
-  Minus
+  CalendarDays
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,9 +34,7 @@ const ComprehensiveDayBook = () => {
     },
     dishhome: [],
     fibernet: [],
-    combo: [],
-    credits: [],
-    debits: []
+    combo: []
   });
   const [filteredData, setFilteredData] = useState({
     dhi: {
@@ -49,12 +44,11 @@ const ComprehensiveDayBook = () => {
     },
     dishhome: [],
     fibernet: [],
-    combo: [],
-    credits: [],
-    debits: []
+    combo: []
   });
 
   const dateFilterOptions = [
+    { value: 'overall', label: 'Overall' },
     { value: 'today', label: 'Today' },
     { value: '3days', label: 'Last 3 Days' },
     { value: '7days', label: 'Last 7 Days' },
@@ -67,9 +61,7 @@ const ComprehensiveDayBook = () => {
     { id: 'dhi', name: 'DHI Records', icon: Package, color: 'blue' },
     { id: 'dishhome', name: 'DishHome', icon: Tv, color: 'purple' },
     { id: 'fibernet', name: 'Fibernet', icon: Wifi, color: 'cyan' },
-    { id: 'combo', name: 'Combo', icon: Package2, color: 'green' },
-    { id: 'credits', name: 'Credits', icon: TrendingUp, color: 'emerald' },
-    { id: 'debits', name: 'Debits', icon: TrendingDown, color: 'red' }
+    { id: 'combo', name: 'Combo', icon: Package2, color: 'green' }
   ];
 
   useEffect(() => {
@@ -85,6 +77,9 @@ const ComprehensiveDayBook = () => {
       let startDate = new Date(today);
       
       switch (filterType) {
+        case 'overall':
+          // Return null to indicate no date filtering should be applied
+          return null;
         case 'today':
           startDate.setHours(0, 0, 0, 0);
           break;
@@ -125,32 +120,27 @@ const ComprehensiveDayBook = () => {
     const range = getDateRange(dateFilter);
     if (!range && dateFilter === 'custom') return;
 
+    // If dateFilter is 'overall' or range is null, show all data without filtering
     const filtered = {
       dhi: {
-        sales: data.dhi.sales.filter(sale => 
+        sales: dateFilter === 'overall' || !range ? data.dhi.sales : data.dhi.sales.filter(sale => 
           isDateInRange(sale.sale_date || sale.created_at, range)
         ),
-        products: data.dhi.products.filter(product => 
+        products: dateFilter === 'overall' || !range ? data.dhi.products : data.dhi.products.filter(product => 
           isDateInRange(product.created_at || new Date().toISOString(), range)
         ),
-        purchases: data.dhi.purchases.filter(purchase => 
+        purchases: dateFilter === 'overall' || !range ? data.dhi.purchases : data.dhi.purchases.filter(purchase => 
           isDateInRange(purchase.purchase_date || purchase.created_at, range)
         )
       },
-      dishhome: data.dishhome.filter(customer => 
+      dishhome: dateFilter === 'overall' || !range ? data.dishhome : data.dishhome.filter(customer => 
         isDateInRange(customer.created_at || customer.registrationDate, range)
       ),
-      fibernet: data.fibernet.filter(customer => 
+      fibernet: dateFilter === 'overall' || !range ? data.fibernet : data.fibernet.filter(customer => 
         isDateInRange(customer.created_at || customer.registrationDate, range)
       ),
-      combo: data.combo.filter(combo => 
+      combo: dateFilter === 'overall' || !range ? data.combo : data.combo.filter(combo => 
         isDateInRange(combo.created_at || combo.registrationDate, range)
-      ),
-      credits: data.credits.filter(credit => 
-        isDateInRange(credit.date, range)
-      ),
-      debits: data.debits.filter(debit => 
-        isDateInRange(debit.date, range)
       )
     };
 
@@ -183,18 +173,7 @@ const ComprehensiveDayBook = () => {
         },
         dishhome: dishhomeRes.data.data || [],
         fibernet: fibernetRes.data.data || [],
-        combo: comboRes.data.data || [],
-        // Sample credit/debit data - replace with actual API calls
-        credits: [
-          { id: 1, amount: 5000, description: 'Customer Payment - DishHome', date: new Date().toISOString(), type: 'payment', customer: 'John Doe' },
-          { id: 2, amount: 3000, description: 'Fibernet Service Payment', date: new Date(Date.now() - 86400000).toISOString(), type: 'service', customer: 'Jane Smith' },
-          { id: 3, amount: 2500, description: 'Combo Package Payment', date: new Date(Date.now() - 172800000).toISOString(), type: 'combo', customer: 'Mike Johnson' }
-        ],
-        debits: [
-          { id: 1, amount: 1500, description: 'Equipment Purchase', date: new Date().toISOString(), type: 'purchase', vendor: 'Tech Supplies Ltd' },
-          { id: 2, amount: 800, description: 'Office Rent', date: new Date(Date.now() - 86400000).toISOString(), type: 'expense', vendor: 'Property Management' },
-          { id: 3, amount: 1200, description: 'Internet Bills', date: new Date(Date.now() - 172800000).toISOString(), type: 'utility', vendor: 'ISP Provider' }
-        ]
+        combo: comboRes.data.data || []
       });
     } catch (error) {
       console.error('Error fetching daybook data:', error);
@@ -221,12 +200,45 @@ const ComprehensiveDayBook = () => {
     const totalRevenue = filteredData.dhi.sales.reduce((sum, sale) => sum + parseFloat(sale.total_price || 0), 0);
     const totalProducts = filteredData.dhi.products.length;
     const totalCustomers = filteredData.dishhome.length + filteredData.fibernet.length + filteredData.combo.length;
-    const totalCredits = filteredData.credits.reduce((sum, credit) => sum + credit.amount, 0);
-    const totalDebits = filteredData.debits.reduce((sum, debit) => sum + debit.amount, 0);
-    const netIncome = totalRevenue + totalCredits - totalDebits;
+    const totalPurchases = filteredData.dhi.purchases.reduce((sum, purchase) => sum + parseFloat(purchase.total_cost || 0), 0);
+    const netIncome = totalRevenue - totalPurchases;
+
+    // Service breakdown
+    const dishhomeCustomers = filteredData.dishhome.length;
+    const fibernetCustomers = filteredData.fibernet.length;
+    const comboCustomers = filteredData.combo.length;
+    const purchaseCount = filteredData.dhi.purchases.length;
+
+    // Get filter description for display
+    const getFilterDescription = () => {
+      switch (dateFilter) {
+        case 'overall': return 'All Historical Data';
+        case 'today': return 'Today';
+        case '3days': return 'Last 3 Days';
+        case '7days': return 'Last 7 Days';
+        case '30days': return 'Last 30 Days';
+        case 'custom': return `${customStartDate} to ${customEndDate}`;
+        default: return 'All Time';
+      }
+    };
 
     return (
       <div className="space-y-6">
+        {/* Filter Status Banner */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Filter className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Showing data for: <span className="font-bold">{getFilterDescription()}</span>
+              </span>
+            </div>
+            <span className="text-xs text-blue-600">
+              Last updated: {new Date().toLocaleTimeString()}
+            </span>
+          </div>
+        </div>
+
         {/* Financial Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -241,26 +253,26 @@ const ComprehensiveDayBook = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-emerald-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-emerald-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Package className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Credits</p>
-                <p className="text-2xl font-bold text-emerald-600">+Rs. {totalCredits.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Purchases</p>
+                <p className="text-2xl font-bold text-purple-600">Rs. {totalPurchases.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-cyan-200 p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <TrendingDown className="h-6 w-6 text-red-600" />
+              <div className="p-3 bg-cyan-100 rounded-lg">
+                <Users className="h-6 w-6 text-cyan-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Debits</p>
-                <p className="text-2xl font-bold text-red-600">-Rs. {totalDebits.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                <p className="text-2xl font-bold text-cyan-600">{totalCustomers}</p>
               </div>
             </div>
           </div>
@@ -271,7 +283,7 @@ const ComprehensiveDayBook = () => {
                 <Activity className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Net Income</p>
+                <p className="text-sm font-medium text-gray-600">Gross Profit</p>
                 <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   Rs. {netIncome.toLocaleString()}
                 </p>
@@ -321,11 +333,11 @@ const ComprehensiveDayBook = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-3 bg-orange-100 rounded-lg">
-                <CreditCard className="h-6 w-6 text-orange-600" />
+                <BarChart3 className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Transactions</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredData.credits.length + filteredData.debits.length}</p>
+                <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                <p className="text-2xl font-bold text-gray-900">{totalSales + filteredData.dhi.purchases.length}</p>
               </div>
             </div>
           </div>
@@ -333,32 +345,66 @@ const ComprehensiveDayBook = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Distribution</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">DishHome Customers</span>
-                <span className="font-semibold">{filteredData.dishhome.length}</span>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Service Distribution</h3>
+              <span className="text-xs text-gray-500">Filtered Results</span>
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Tv className="h-4 w-4 text-purple-600" />
+                  <span className="text-gray-700 font-medium">DishHome Customers</span>
+                </div>
+                <span className="font-bold text-purple-600">{dishhomeCustomers}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Fibernet Customers</span>
-                <span className="font-semibold">{filteredData.fibernet.length}</span>
+              <div className="flex justify-between items-center p-3 bg-cyan-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Wifi className="h-4 w-4 text-cyan-600" />
+                  <span className="text-gray-700 font-medium">Fibernet Customers</span>
+                </div>
+                <span className="font-bold text-cyan-600">{fibernetCustomers}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Combo Packages</span>
-                <span className="font-semibold">{filteredData.combo.length}</span>
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Package2 className="h-4 w-4 text-green-600" />
+                  <span className="text-gray-700 font-medium">Combo Packages</span>
+                </div>
+                <span className="font-bold text-green-600">{comboCustomers}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Package className="h-4 w-4 text-gray-600" />
+                  <span className="text-gray-700 font-medium">Purchase Orders</span>
+                </div>
+                <span className="font-bold text-gray-600">{purchaseCount}</span>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-            <div className="space-y-2">
-              {filteredData.dhi.sales.slice(-5).reverse().map((sale, index) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">Sale #{sale.id}</span>
-                  <span className="font-medium">Rs. {parseFloat(sale.total_price || 0).toFixed(2)}</span>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Recent Sales Activity</h3>
+              <span className="text-xs text-gray-500">Latest {Math.min(5, totalSales)} sales</span>
+            </div>
+            <div className="space-y-3">
+              {filteredData.dhi.sales.length > 0 ? (
+                filteredData.dhi.sales.slice(-5).reverse().map((sale, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Sale #{sale.id}</span>
+                      <p className="text-xs text-gray-500">
+                        {new Date(sale.sale_date || sale.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className="font-bold text-green-600">Rs. {parseFloat(sale.total_price || 0).toLocaleString()}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No sales found for selected period</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -394,26 +440,117 @@ const ComprehensiveDayBook = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredData.dhi.sales.slice(-10).reverse().map((sale, index) => (
+              {(() => {
+                // Group sales by invoice number and customer
+                const groupedSales = filteredData.dhi.sales.reduce((groups, sale) => {
+                  const key = `${sale.invoice_no || sale.id}_${sale.customer_name || 'unknown'}`;
+                  if (!groups[key]) {
+                    groups[key] = {
+                      invoice_no: sale.invoice_no || sale.id,
+                      customer_name: sale.customer_name || 'Not specified',
+                      sale_date: sale.sale_date,
+                      items: [],
+                      total_amount: 0
+                    };
+                  }
+                  
+                  const product = filteredData.dhi.products.find(p => p.id == sale.product_id);
+                  groups[key].items.push({
+                    product_name: product ? product.name : 'Unknown Product',
+                    quantity: sale.quantity_sold || 1,
+                    price: parseFloat(sale.total_price || 0)
+                  });
+                  groups[key].total_amount += parseFloat(sale.total_price || 0);
+                  
+                  return groups;
+                }, {});
+
+                // Convert to array and take last 10, then reverse
+                const groupedArray = Object.values(groupedSales).slice(-10).reverse();
+
+                return groupedArray.map((groupedSale, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{groupedSale.invoice_no}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {groupedSale.customer_name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="space-y-1">
+                        {groupedSale.items.map((item, itemIndex) => (
+                          <div key={itemIndex} className="flex justify-between">
+                            <span>{item.product_name}</span>
+                            <span className="text-gray-500 ml-2">×{item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {groupedSale.items.reduce((sum, item) => sum + item.quantity, 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(groupedSale.sale_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      Rs. {groupedSale.total_amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Completed
+                      </span>
+                    </td>
+                  </tr>
+                ));
+              })()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Purchases Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Purchases</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cost</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredData.dhi.purchases.slice(-10).reverse().map((purchase, index) => (
                 <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{sale.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{purchase.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(sale.sale_date).toLocaleDateString()}
+                    {purchase.product_name || 'Unknown Product'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    Rs. {parseFloat(sale.total_price || 0).toFixed(2)}
+                    {purchase.supplier_name || 'Unknown Supplier'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                      Completed
-                    </span>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {purchase.quantity_purchased || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {new Date(purchase.purchase_date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    Rs. {parseFloat(purchase.total_amount || 0).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -484,126 +621,6 @@ const ComprehensiveDayBook = () => {
     </div>
   );
 
-  const renderCredits = () => (
-    <div className="space-y-4">
-      {filteredData.credits.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <CreditCard className="w-16 h-16 mx-auto mb-4 opacity-30" />
-          <p>No credit transactions found for the selected date range</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-emerald-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 border-b border-emerald-200">
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="w-6 h-6 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-emerald-800">Credit Transactions</h2>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredData.credits.map((credit, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(credit.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{credit.customer}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{credit.description}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-semibold text-emerald-600">+Rs. {credit.amount.toLocaleString()}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-emerald-50">
-                <tr>
-                  <td colSpan="3" className="px-6 py-4 text-sm font-medium text-emerald-800">Total Credits:</td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-lg font-bold text-emerald-600">
-                      +Rs. {filteredData.credits.reduce((sum, credit) => sum + credit.amount, 0).toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderDebits = () => (
-    <div className="space-y-4">
-      {filteredData.debits.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <Minus className="w-16 h-16 mx-auto mb-4 opacity-30" />
-          <p>No debit transactions found for the selected date range</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-red-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-red-50 to-red-100 px-6 py-4 border-b border-red-200">
-            <div className="flex items-center space-x-3">
-              <TrendingDown className="w-6 h-6 text-red-600" />
-              <h2 className="text-lg font-semibold text-red-800">Debit Transactions</h2>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor/Expense</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredData.debits.map((debit, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(debit.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{debit.vendor}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{debit.description}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-sm font-semibold text-red-600">-Rs. {debit.amount.toLocaleString()}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-red-50">
-                <tr>
-                  <td colSpan="3" className="px-6 py-4 text-sm font-medium text-red-800">Total Debits:</td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-lg font-bold text-red-600">
-                      -Rs. {filteredData.debits.reduce((sum, debit) => sum + debit.amount, 0).toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const renderTabContent = () => {
     if (loading) {
       return (
@@ -624,10 +641,6 @@ const ComprehensiveDayBook = () => {
         return renderServiceRecords(data.fibernet, 'Fibernet');
       case 'combo':
         return renderServiceRecords(data.combo, 'Combo');
-      case 'credits':
-        return renderCredits();
-      case 'debits':
-        return renderDebits();
       default:
         return renderTotalOverview();
     }

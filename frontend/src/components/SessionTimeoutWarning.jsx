@@ -63,7 +63,6 @@ const SessionTimeoutWarning = () => {
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         
         setShowWarning(false);
-        console.log('Session extended successfully');
       }
     } catch (error) {
       console.error('Error extending session:', error);

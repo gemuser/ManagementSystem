@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../api/axios';
 import DishhomeSidebar from '../components/DishhomeSidebar';
-import UpgradeToComboButton from '../components/UpgradeToComboButton';
 import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
@@ -624,12 +623,6 @@ const DishhomePage = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
-                            <UpgradeToComboButton
-                              customer={customer}
-                              sourceService="dishhome"
-                              onUpgradeSuccess={getCustomers}
-                              className=""
-                            />
                             <button
                               onClick={() => handleDelete(customer.customerId)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"

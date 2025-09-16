@@ -47,7 +47,6 @@ async function generateVATBillBuffer(billData, options = {}) {
       }
     });
 
-    console.log('✅ VAT Bill PDF generated in memory');
     return pdfBuffer;
 
   } catch (error) {

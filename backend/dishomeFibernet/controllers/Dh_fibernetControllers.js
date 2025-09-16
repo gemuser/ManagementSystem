@@ -69,8 +69,6 @@ const getCustomersWithDetails = async (req, res) => {
 // ===================== CREATE COMBO CUSTOMER =====================
 const createCustomer = async (req, res) => {
     try {
-        console.log('Creating combo customer with data:', req.body);
-        
         const { 
             dishhomeId, 
             fibernetId, 
@@ -236,15 +234,7 @@ const createCustomer = async (req, res) => {
             }
         }
 
-        console.log('Final combo data before insert:', {
-            finalDishhomeId,
-            finalFibernetId,
-            customerName,
-            upgradeType,
-            sourceService,
-            totalPrice
-        });
-
+        // Insert combo customer record
         // Use transaction to ensure data consistency
         const connection = await db.getConnection();
         
@@ -276,18 +266,14 @@ const createCustomer = async (req, res) => {
 
             const comboId = insertResult[0].insertId;
 
-            // Remove original customer record to avoid data duplication (only for conversions)
-            if ((upgradeType && upgradeType !== '') && (sourceService && sourceService !== '')) {
-                if (sourceService === 'dishhome' && dishhomeId && dishhomeId !== '') {
-                    // Remove from DishHome table
-                    await connection.query('DELETE FROM dishhome WHERE customerId = ?', [dishhomeId]);
-                    console.log(`Removed DishHome customer ${dishhomeId} after combo conversion`);
-                } else if (sourceService === 'fibernet' && fibernetId && fibernetId !== '') {
-                    // Remove from Fibernet table
-                    await connection.query('DELETE FROM fibernet WHERE customerId = ?', [fibernetId]);
-                    console.log(`Removed Fibernet customer ${fibernetId} after combo conversion`);
+                            // Remove original customer records after successful combo creation
+                if (upgradeType === 'dishhome-to-combo' && dishhomeId) {
+                    await db.execute('DELETE FROM dishhome_customers WHERE id = ?', [dishhomeId]);
                 }
-            }
+                
+                if (upgradeType === 'fibernet-to-combo' && fibernetId) {
+                    await db.execute('DELETE FROM fibernet_customers WHERE id = ?', [fibernetId]);
+                }
 
             // Commit the transaction
             await connection.commit();

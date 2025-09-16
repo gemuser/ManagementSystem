@@ -47,7 +47,7 @@ const Dashboard = () => {
         const productsRes = await axios.get('/products/list');
         products = productsRes.data.data || [];
       } catch (productsErr) {
-        console.log('No products data found');
+        // No products data found
         products = [];
       }
       
@@ -57,7 +57,7 @@ const Dashboard = () => {
         const salesRes = await axios.get('/sales/list');
         sales = salesRes.data.data || [];
       } catch (salesErr) {
-        console.log('No sales data found - this is normal for new shops');
+        // No sales data found - this is normal for new shops
         sales = [];
       }
       

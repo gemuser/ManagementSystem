@@ -191,6 +191,7 @@ DROP TABLE IF EXISTS `sales`;
 CREATE TABLE `sales` (
   `id` int NOT NULL AUTO_INCREMENT,
   `invoice_no` varchar(50) NOT NULL,
+  `customer_name` varchar(100) DEFAULT NULL,
   `product_id` int NOT NULL,
   `quantity_sold` int NOT NULL,
   `price_each` decimal(10,2) NOT NULL,

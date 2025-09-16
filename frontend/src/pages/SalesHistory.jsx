@@ -31,7 +31,8 @@ const SalesHistory = () => {
     dateFrom: '',
     dateTo: '',
     productId: '',
-    invoiceNo: ''
+    invoiceNo: '',
+    customerName: ''
   });
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -114,6 +115,12 @@ const SalesHistory = () => {
       );
     }
 
+    if (filter.customerName) {
+      filtered = filtered.filter(sale => 
+        sale.customer_name && sale.customer_name.toLowerCase().includes(filter.customerName.toLowerCase())
+      );
+    }
+
     // Apply sorting (maintain recent first by default)
     const sorted = filtered.sort((a, b) => {
       if (sortOrder === 'desc') {
@@ -146,7 +153,8 @@ const SalesHistory = () => {
       dateFrom: '',
       dateTo: '',
       productId: '',
-      invoiceNo: ''
+      invoiceNo: '',
+      customerName: ''
     });
     setFilteredSales(sales);
   };
@@ -257,6 +265,7 @@ const SalesHistory = () => {
             <div class="grid grid-cols-2 gap-2 text-sm">
               <div><span class="font-medium">Invoice No:</span> ${sale.invoice_no}</div>
               <div><span class="font-medium">Sale ID:</span> #${sale.id}</div>
+              <div><span class="font-medium">Customer:</span> ${sale.customer_name || 'Not specified'}</div>
               <div><span class="font-medium">Date:</span> ${new Date(sale.sale_date).toLocaleDateString()}</div>
               <div><span class="font-medium">Time:</span> ${new Date(sale.sale_date).toLocaleTimeString()}</div>
             </div>
@@ -432,47 +441,72 @@ const SalesHistory = () => {
 
   const generateVATBillForSaleHistory = async (sale) => {
     try {
-      // Get customer name and VAT rate
-      const { value: formData } = await Swal.fire({
-        title: 'Generate Bill for Sale',
-        html: `
-          <div class="text-left mb-4">
-            <p><strong>Invoice:</strong> ${sale.invoice_no}</p>
-            <p><strong>Product:</strong> ${getProductName(sale.product_id)}</p>
-            <p><strong>Quantity:</strong> ${sale.quantity_sold}</p>
-            <p><strong>Total:</strong> Rs. ${parseFloat(sale.total_price).toFixed(2)}</p>
-            <p><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleDateString()}</p>
-          </div>
-          <div class="border-t pt-4 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-              <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
+      let customerName = sale.customer_name;
+      
+      // Only ask for customer name if it's not already available
+      if (!customerName || customerName.trim() === '') {
+        const { value: formData } = await Swal.fire({
+          title: 'Generate Bill for Sale',
+          html: `
+            <div class="text-left mb-4">
+              <p><strong>Invoice:</strong> ${sale.invoice_no}</p>
+              <p><strong>Product:</strong> ${getProductName(sale.product_id)}</p>
+              <p><strong>Quantity:</strong> ${sale.quantity_sold}</p>
+              <p><strong>Total:</strong> Rs. ${parseFloat(sale.total_price).toFixed(2)}</p>
+              <p><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleDateString()}</p>
             </div>
-           
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Generate  Bill',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-          const name = document.getElementById('customerName').value.trim();
-          
-          if (!name) {
-            Swal.showValidationMessage('Customer name is required');
-            return false;
+            <div class="border-t pt-4 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name * (Required for bill generation)</label>
+                <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Generate Bill',
+          cancelButtonText: 'Cancel',
+          preConfirm: () => {
+            const name = document.getElementById('customerName').value.trim();
+            
+            if (!name) {
+              Swal.showValidationMessage('Customer name is required');
+              return false;
+            }
+            
+            return {
+              customerName: name
+            };
           }
-          
-          return {
-            customerName: name
-          };
-        }
-      });
+        });
 
-      if (!formData) return;
+        if (!formData) return;
+        customerName = formData.customerName;
+      } else {
+        // Show confirmation dialog with existing customer name
+        const confirmed = await Swal.fire({
+          title: 'Generate Bill',
+          html: `
+            <div class="text-left mb-4">
+              <p><strong>Invoice:</strong> ${sale.invoice_no}</p>
+              <p><strong>Customer:</strong> ${sale.customer_name}</p>
+              <p><strong>Product:</strong> ${getProductName(sale.product_id)}</p>
+              <p><strong>Quantity:</strong> ${sale.quantity_sold}</p>
+              <p><strong>Total:</strong> Rs. ${parseFloat(sale.total_price).toFixed(2)}</p>
+              <p><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleDateString()}</p>
+            </div>
+            <p class="text-sm text-gray-600 mt-4">Generate VAT bill for this sale?</p>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Generate Bill',
+          cancelButtonText: 'Cancel'
+        });
 
-      const { customerName } = formData;
+        if (!confirmed.isConfirmed) return;
+      }
 
       // Prepare sale data for bill using the new structured format
       const totalAmount = parseFloat(sale.total_price);
@@ -590,6 +624,7 @@ const SalesHistory = () => {
         <div class="text-left">
           <div class="bg-gray-50 p-4 rounded-lg mb-4">
             <div><span class="font-medium">Invoice No:</span> ${invoice.invoice_no}</div>
+            <div><span class="font-medium">Customer:</span> ${invoice.items[0]?.customer_name || 'Not specified'}</div>
             <div><span class="font-medium">Date:</span> ${new Date(invoice.sale_date).toLocaleString()}</div>
             <div><span class="font-medium">Total Products:</span> ${invoice.items.length}</div>
             <div><span class="font-medium">Total Items:</span> ${invoice.total_items} units</div>
@@ -626,46 +661,73 @@ const SalesHistory = () => {
 
   const generateVATBillForInvoice = async (invoice) => {
     try {
-      // Get customer name and VAT rate
-      const { value: formData } = await Swal.fire({
-        title: 'Generate  Bill for Invoice',
-        html: `
-          <div class="text-left mb-4">
-            <p><strong>Invoice:</strong> ${invoice.invoice_no}</p>
-            <p><strong>Products:</strong> ${invoice.items.length}</p>
-            <p><strong>Total Items:</strong> ${invoice.total_items}</p>
-            <p><strong>Total Amount:</strong> Rs. ${invoice.total_amount.toFixed(2)}</p>
-            <p><strong>Date:</strong> ${new Date(invoice.sale_date).toLocaleDateString()}</p>
-          </div>
-          <div class="border-t pt-4 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-              <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
+      // Get customer name from the first item (assuming all items in an invoice have the same customer)
+      let customerName = invoice.items[0]?.customer_name;
+      
+      // Only ask for customer name if it's not already available
+      if (!customerName || customerName.trim() === '') {
+        const { value: formData } = await Swal.fire({
+          title: 'Generate Bill for Invoice',
+          html: `
+            <div class="text-left mb-4">
+              <p><strong>Invoice:</strong> ${invoice.invoice_no}</p>
+              <p><strong>Products:</strong> ${invoice.items.length}</p>
+              <p><strong>Total Items:</strong> ${invoice.total_items}</p>
+              <p><strong>Total Amount:</strong> Rs. ${invoice.total_amount.toFixed(2)}</p>
+              <p><strong>Date:</strong> ${new Date(invoice.sale_date).toLocaleDateString()}</p>
             </div>
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Generate Bill',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-          const name = document.getElementById('customerName').value.trim();
-          
-          if (!name) {
-            Swal.showValidationMessage('Customer name is required');
-            return false;
+            <div class="border-t pt-4 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name * (Required for bill generation)</label>
+                <input id="customerName" class="swal2-input w-full" placeholder="Enter customer name" required>
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Generate Bill',
+          cancelButtonText: 'Cancel',
+          preConfirm: () => {
+            const name = document.getElementById('customerName').value.trim();
+            
+            if (!name) {
+              Swal.showValidationMessage('Customer name is required');
+              return false;
+            }
+            
+            return {
+              customerName: name
+            };
           }
-          
-          return {
-            customerName: name
-          };
-        }
-      });
+        });
 
-      if (!formData) return;
+        if (!formData) return;
+        customerName = formData.customerName;
+      } else {
+        // Show confirmation dialog with existing customer name
+        const confirmed = await Swal.fire({
+          title: 'Generate Bill',
+          html: `
+            <div class="text-left mb-4">
+              <p><strong>Invoice:</strong> ${invoice.invoice_no}</p>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              <p><strong>Products:</strong> ${invoice.items.length}</p>
+              <p><strong>Total Items:</strong> ${invoice.total_items}</p>
+              <p><strong>Total Amount:</strong> Rs. ${invoice.total_amount.toFixed(2)}</p>
+              <p><strong>Date:</strong> ${new Date(invoice.sale_date).toLocaleDateString()}</p>
+            </div>
+            <p class="text-sm text-gray-600 mt-4">Generate VAT bill for this invoice?</p>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Generate Bill',
+          cancelButtonText: 'Cancel'
+        });
 
-      const { customerName } = formData;
+        if (!confirmed.isConfirmed) return;
+      }
 
       // Prepare invoice data for VAT bill generation
       const vatBillData = {
@@ -856,7 +918,7 @@ const SalesHistory = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <Calendar size={14} className="inline mr-1" />
@@ -912,6 +974,20 @@ const SalesHistory = () => {
                 placeholder="Search invoice..."
                 value={filter.invoiceNo}
                 onChange={(e) => setFilter({ ...filter, invoiceNo: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Search size={14} className="inline mr-1" />
+                Customer Name
+              </label>
+              <input
+                type="text"
+                placeholder="Search customer..."
+                value={filter.customerName}
+                onChange={(e) => setFilter({ ...filter, customerName: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
@@ -1005,6 +1081,9 @@ const SalesHistory = () => {
                               <h3 className="font-semibold text-gray-900">{invoice.invoice_no}</h3>
                               <p className="text-sm text-gray-500">
                                 {new Date(invoice.sale_date).toLocaleDateString()} • {invoice.items.length} items
+                                {invoice.items[0]?.customer_name && (
+                                  <span className="ml-2 text-blue-600">• {invoice.items[0].customer_name}</span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1037,16 +1116,16 @@ const SalesHistory = () => {
                             {/* Invoice Info */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                               <div className="text-sm">
+                                <span className="text-gray-500">Customer:</span>
+                                <p className="font-medium">{invoice.items[0]?.customer_name || 'Not specified'}</p>
+                              </div>
+                              <div className="text-sm">
                                 <span className="text-gray-500">Date & Time:</span>
                                 <p className="font-medium">{new Date(invoice.sale_date).toLocaleString()}</p>
                               </div>
                               <div className="text-sm">
                                 <span className="text-gray-500">Total Items:</span>
                                 <p className="font-medium">{invoice.total_items} units</p>
-                              </div>
-                              <div className="text-sm">
-                                <span className="text-gray-500">Total Amount:</span>
-                                <p className="font-medium text-green-600">Rs. {invoice.total_amount.toFixed(2)}</p>
                               </div>
                             </div>
 

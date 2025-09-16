@@ -11,7 +11,8 @@ import {
   Building2,
   BookOpen,
   ShoppingBag,
-  ArrowLeft
+  ArrowLeft,
+  Calculator
 } from "lucide-react";
 
 const DHISidebar = () => {

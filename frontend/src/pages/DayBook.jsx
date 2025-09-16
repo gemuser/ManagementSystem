@@ -114,13 +114,44 @@ const DayBook = () => {
           };
         });
         
+        // Group sales by invoice number and customer to avoid duplicates
+        const groupedSales = salesWithProductNames.reduce((groups, sale) => {
+          const key = `${sale.invoice_no || sale.id}_${sale.customer_name || 'unknown'}`;
+          if (!groups[key]) {
+            groups[key] = {
+              ...sale,
+              items: [],
+              grouped_total: 0,
+              grouped_quantity: 0
+            };
+          }
+          
+          groups[key].items.push({
+            product_name: sale.product_name,
+            quantity: sale.quantity_sold || 1,
+            price: parseFloat(sale.total_price || 0)
+          });
+          groups[key].grouped_total += parseFloat(sale.total_price || 0);
+          groups[key].grouped_quantity += parseInt(sale.quantity_sold || 1);
+          
+          // Update the display name to show multiple products
+          if (groups[key].items.length > 1) {
+            groups[key].product_name = `${groups[key].items.length} items (${groups[key].items.map(item => item.product_name).join(', ')})`;
+          }
+          
+          return groups;
+        }, {});
+        
+        // Convert back to array
+        const finalSalesData = Object.values(groupedSales);
+        
         newFinancialData.inventorySales = {
-          total: salesWithProductNames.reduce((sum, sale) => sum + parseFloat(sale.total_price || 0), 0),
-          count: salesWithProductNames.length,
-          items: salesWithProductNames
+          total: finalSalesData.reduce((sum, sale) => sum + parseFloat(sale.grouped_total || sale.total_price || 0), 0),
+          count: finalSalesData.length,
+          items: finalSalesData
         };
       } catch {
-        console.log('No inventory sales data found');
+        // No inventory sales data found
       }
 
       // 2. DISHHOME REVENUE (Monthly recurring revenue)
@@ -150,7 +181,7 @@ const DayBook = () => {
           items: dishhomeRevenue
         };
       } catch {
-        console.log('No DishHome data found');
+        // No DishHome data found
       }
 
       // 3. FIBERNET REVENUE (Monthly recurring revenue)
@@ -178,7 +209,7 @@ const DayBook = () => {
           items: fibernetRevenue
         };
       } catch {
-        console.log('No Fibernet data found');
+        // No Fibernet data found
       }
 
       // 4. COMBO REVENUE (Monthly recurring revenue)
@@ -208,7 +239,7 @@ const DayBook = () => {
           items: comboRevenue
         };
       } catch {
-        console.log('No Combo data found');
+        // No Combo data found
       }
 
       // 5. PURCHASES (EXPENDITURE)
@@ -220,8 +251,12 @@ const DayBook = () => {
         
         const purchasesData = filteredPurchases.map(purchase => ({
           ...purchase,
+          // Use correct field names from the purchases table
+          product_name: purchase.product_name || 'Unknown Product',
+          supplier_name: purchase.supplier_name || 'Unknown Supplier',
+          quantity: purchase.quantity_purchased || 0,
           category: 'Stock Purchase',
-          amount: parseFloat(purchase.total_cost || 0)
+          amount: parseFloat(purchase.total_amount || 0)
         }));
         
         newFinancialData.purchases = {
@@ -230,7 +265,7 @@ const DayBook = () => {
           items: purchasesData
         };
       } catch {
-        console.log('No purchases data found');
+        // No purchases data found
       }
 
       // Calculate totals
@@ -322,22 +357,49 @@ const DayBook = () => {
             {data.items.map((item, index) => (
               <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{item.customer_name || item.product_name || item.product || 'Unknown'}</p>
+                  <p className="font-medium text-sm">
+                    {item.customer_name || item.product_name || item.product || 'Unknown'}
+                  </p>
                   <p className="text-xs text-gray-500">
-                    {item.phone && `${item.phone} • `}
-                    {item.package && `${item.package} • `}
-                    {item.combo_type && `${item.combo_type} • `}
-                    {item.upgrade_type && `${item.upgrade_type} • `}
-                    {item.cas_id && `CAS: ${item.cas_id} • `}
-                    {item.category}
+                    {/* For inventory sales, show customer name and product separately */}
+                    {item.category === 'Inventory Sales' ? (
+                      <>
+                        {item.customer_name && `Customer: ${item.customer_name}`}
+                        {item.customer_name && item.product_name && ' • '}
+                        {item.product_name && `Product: ${item.product_name}`}
+                        {(item.customer_name || item.product_name) && ' • '}
+                        {item.invoice_no && `Invoice: ${item.invoice_no} • `}
+                        {item.category}
+                      </>
+                    ) : item.category === 'Stock Purchase' ? (
+                      /* For purchases, show supplier and product details */
+                      <>
+                        {item.supplier_name && `Supplier: ${item.supplier_name}`}
+                        {item.supplier_name && item.product_name && ' • '}
+                        {item.product_name && `Product: ${item.product_name}`}
+                        {(item.supplier_name || item.product_name) && ' • '}
+                        {item.quantity && `Qty: ${item.quantity} • `}
+                        {item.category}
+                      </>
+                    ) : (
+                      /* For service sales, show existing format */
+                      <>
+                        {item.phone && `${item.phone} • `}
+                        {item.package && `${item.package} • `}
+                        {item.combo_type && `${item.combo_type} • `}
+                        {item.upgrade_type && `${item.upgrade_type} • `}
+                        {item.cas_id && `CAS: ${item.cas_id} • `}
+                        {item.category}
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className={`font-semibold text-${color}-600`}>
-                    {formatCurrency(item.total_price || item.amount)}
+                    {formatCurrency(item.grouped_total || item.total_price || item.amount)}
                   </p>
-                  {item.quantity_sold && (
-                    <p className="text-xs text-gray-500">Qty: {item.quantity_sold}</p>
+                  {(item.grouped_quantity || item.quantity_sold) && (
+                    <p className="text-xs text-gray-500">Qty: {item.grouped_quantity || item.quantity_sold}</p>
                   )}
                 </div>
               </div>

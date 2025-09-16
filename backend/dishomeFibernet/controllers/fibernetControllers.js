@@ -10,7 +10,6 @@ const getCustomers = async (req, res) => {
             data: data[0] || []
         });
     } catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: "Error in getting customer",
@@ -66,7 +65,6 @@ const createCustomer = async (req, res) => {
             message: 'Customer created successfully',
         });
     } catch (err) {
-        console.log('Error creating customer:', err);
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).send({
                 success: false,
@@ -111,7 +109,6 @@ const updateCustomer = async (req, res) => {
             message: 'Customer updated successfully'
         });
     } catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'Error in updating customer',
@@ -138,7 +135,6 @@ const deleteCustomer = async (req, res) => {
             message: 'Customer deleted successfully'
         });
     } catch (err) {
-        console.log(err);
         res.status(500).send({
             success: false,
             message: 'Error in deleting customer',

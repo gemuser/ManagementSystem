@@ -66,7 +66,7 @@ function Login() {
         setError(response.data.message || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('🚨 Login error:', error);
       if (error.response?.data?.message) {
         setError(error.response.data.message);
       } else if (error.response?.status === 401) {

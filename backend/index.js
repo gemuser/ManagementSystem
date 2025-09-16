@@ -37,6 +37,7 @@ app.use('/api/fibernet', require('./dishomeFibernet/routes/fibernetRoutes'));
 app.use('/api/Dhfibernet', require('./dishomeFibernet/routes/dishhome_fibernetRoutes'));
 app.use('/api/invoices', require('./dishomeFibernet/routes/invoiceRoutes'));
 app.use('/api/combo-bill', require('./dishomeFibernet/routes/comboBillRoutes'));
+app.use('/api/ledger', require('./routes/ledgerRoutes'));
 
 // Schema update endpoint (temporarily disabled)
 // const { updateComboSchema } = require('./database/schemaController');
@@ -68,13 +69,26 @@ app.get('/', (req, res) => {
   res.status(200).send('Hello, World!');
 })
 
+// Start server first
+try {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server is running on port ${PORT}`.bgBlue);
+      console.log(`Server is listening on all interfaces (0.0.0.0:${PORT})`.bgCyan);
+  });
+  
+  server.on('error', (err) => {
+      console.error('Server error:'.bgRed, err);
+  });
+} catch (err) {
+  console.error('Failed to start server:'.bgRed, err);
+}
+
+// Test database connection separately (don't block server startup)
 db.query('SELECT 1').then(() => {
     console.log('Database connected successfully'.bgGreen);
-    app.listen(PORT, () =>{
-        console.log(`Server is running on port ${PORT}`.bgBlue);
-    })
 })
 .catch((err) => {
-    console.log(err);
+    console.log('Database connection failed:'.bgRed, err.message);
+    console.log('Server is still running without database connection'.bgYellow);
 });
 
