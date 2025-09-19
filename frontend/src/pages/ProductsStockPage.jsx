@@ -13,7 +13,10 @@ import {
   Warehouse,
   RefreshCw,
   Grid,
-  List as ListIcon
+  List as ListIcon,
+  X,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const ProductsStockPage = () => {
@@ -110,9 +113,9 @@ const ProductsStockPage = () => {
   };
 
   const getStockStatus = (stock) => {
-    if (stock <= 0) return { status: 'Out of Stock', color: 'text-red-600 bg-red-100', icon: '❌' };
-    if (stock <= 10) return { status: 'Low Stock', color: 'text-yellow-600 bg-yellow-100', icon: '⚠️' };
-    return { status: 'In Stock', color: 'text-green-600 bg-green-100', icon: '✅' };
+    if (stock <= 0) return { status: 'Out of Stock', color: 'text-red-600 bg-red-100', icon: <X className="h-4 w-4" /> };
+    if (stock <= 10) return { status: 'Low Stock', color: 'text-yellow-600 bg-yellow-100', icon: <AlertCircle className="h-4 w-4" /> };
+    return { status: 'In Stock', color: 'text-green-600 bg-green-100', icon: <CheckCircle className="h-4 w-4" /> };
   };
 
   const handleViewModeChange = (mode) => {
@@ -397,7 +400,8 @@ const ProductsStockPage = () => {
                 <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-semibold text-gray-900 text-sm truncate flex-1">{product.name}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockInfo.color}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockInfo.color} flex items-center gap-1`}>
+                      {stockInfo.icon}
                       {stockInfo.status}
                     </span>
                   </div>
@@ -465,7 +469,8 @@ const ProductsStockPage = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">{product.category}</td>
                       <td className="px-4 py-3">
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockInfo.color}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockInfo.color} flex items-center gap-1`}>
+                            {stockInfo.icon}
                             {product.available_stock || 0} units
                           </span>
                           {(product.total_stock !== product.available_stock) && (

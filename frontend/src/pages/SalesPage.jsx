@@ -14,10 +14,14 @@ import {
   CheckCircle,
   RefreshCw,
   AlertCircle,
+  Star,
+  Percent,
+  X,
+  DollarSign,
+  Check,
   Search,
   Filter,
-  BarChart3,
-  Grid3X3
+  BarChart3
 } from 'lucide-react';
 
 const SalesPage = () => {
@@ -41,9 +45,9 @@ const SalesPage = () => {
     // Subscribe to data refresh events
     const unsubscribe = dataRefreshEmitter.subscribe(async () => {
       try {
-        emitDataRefresh();
+        await fetchProducts(true); // Force refresh when event is received
       } catch (error) {
-        console.error('Error emitting data refresh:', error);
+        console.error('Error refreshing data:', error);
       }
     });
     
@@ -354,8 +358,11 @@ const SalesPage = () => {
                       </div>
                       ${hasDiscount ? `
                       <div class="flex items-center space-x-2 mt-1">
-                        <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                          🎉 ${discountPercent.toFixed(1)}% OFF
+                        <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full flex items-center gap-1">
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"/>
+                          </svg>
+                          ${discountPercent.toFixed(1)}% OFF
                         </span>
                       </div>
                       ` : ''}
@@ -410,8 +417,8 @@ const SalesPage = () => {
       showCancelButton: true,
       confirmButtonColor: '#059669',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: '✨ Complete Sale',
-      cancelButtonText: '❌ Cancel',
+      confirmButtonText: 'Complete Sale',
+      cancelButtonText: 'Cancel',
       buttonsStyling: false,
       customClass: {
         popup: 'rounded-2xl border-0 shadow-2xl',
@@ -457,7 +464,10 @@ const SalesPage = () => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-3">🎉 Sale Completed!</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              Sale Completed!
+            </h2>
             <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 mb-4 border border-green-200">
               <div class="flex items-center justify-center space-x-3 mb-3">
                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -478,7 +488,7 @@ const SalesPage = () => {
         `,
         icon: null,
         confirmButtonColor: '#059669',
-        confirmButtonText: '✨ Great!',
+        confirmButtonText: 'Great!',
         timer: 4000,
         timerProgressBar: true,
         customClass: {
@@ -680,8 +690,8 @@ const SalesPage = () => {
                                     {product.available_stock || 0} stock
                                   </span>
                                   {isSelected && (
-                                    <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
-                                      ✓
+                                    <span className="text-xs bg-green-500 text-white px-2 py-1 rounded flex items-center">
+                                      <Check className="h-3 w-3" />
                                     </span>
                                   )}
                                 </div>

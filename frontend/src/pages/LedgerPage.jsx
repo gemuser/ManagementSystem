@@ -13,7 +13,13 @@ import {
   Trash2,
   Filter,
   Calendar,
-  Clock
+  Clock,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  BarChart3,
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
 
 const LedgerPage = () => {
@@ -67,7 +73,7 @@ const LedgerPage = () => {
         setEntries(response.data.data);
         // The useEffect will handle applying the filter automatically
       } else {
-        console.error('❌ Failed to fetch data:', response.data.message);
+        console.error('Failed to fetch data:', response.data.message);
       }
     } catch (error) {
       console.error('Error fetching ledger data:', error);
@@ -163,7 +169,7 @@ const LedgerPage = () => {
 
   const showAddEntryForm = async () => {
     const { value: formValues } = await Swal.fire({
-      title: '💰 Add New Ledger Entry',
+      title: 'Add New Ledger Entry',
       html: `
         <div class="space-y-4">
           <div>
@@ -182,26 +188,32 @@ const LedgerPage = () => {
             <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Type</label>
             <div class="flex space-x-4">
               <label class="flex items-center">
-                <input type="radio" name="type" value="debit" checked class="text-green-600 focus:ring-green-500 mr-2">
-                <span class="text-sm font-medium text-green-700">💰 Debit (Dr)</span>
+                <input type="radio" name="type" value="debit" checked class="text-red-600 focus:ring-red-500 mr-2">
+                <span class="text-sm font-medium text-red-700 flex items-center gap-1">
+                  <TrendingDown className="h-4 w-4" />
+                  Debit (Dr)
+                </span>
               </label>
               <label class="flex items-center">
-                <input type="radio" name="type" value="credit" class="text-red-600 focus:ring-red-500 mr-2">
-                <span class="text-sm font-medium text-red-700">💸 Credit (Cr)</span>
+                <input type="radio" name="type" value="credit" class="text-green-600 focus:ring-green-500 mr-2">
+                <span class="text-sm font-medium text-green-700 flex items-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  Credit (Cr)
+                </span>
               </label>
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Amount (Rs.)</label>
+            <label class="block  text-sm font-medium text-gray-700 mb-2 text-left">Amount (Rs.)</label>
             <input id="amount" type="number" step="0.01" min="0" placeholder="Enter amount" 
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           </div>
         </div>
       `,
       showCancelButton: true,
-      confirmButtonText: '💾 Add Entry',
-      cancelButtonText: '❌ Cancel',
+      confirmButtonText: 'Add Entry',
+      cancelButtonText: 'Cancel',
       confirmButtonColor: '#3b82f6',
       cancelButtonColor: '#6b7280',
       preConfirm: () => {
@@ -238,7 +250,7 @@ const LedgerPage = () => {
       if (response.data.success) {
         await Swal.fire({
           icon: 'success',
-          title: '✅ Success!',
+          title: 'Success!',
           text: 'Entry added successfully!',
           confirmButtonColor: '#10b981'
         });
@@ -246,7 +258,7 @@ const LedgerPage = () => {
       } else {
         Swal.fire({
           icon: 'error',
-          title: '❌ Failed',
+          title: 'Failed',
           text: response.data.message || 'Failed to add entry',
           confirmButtonColor: '#ef4444'
         });
@@ -255,7 +267,7 @@ const LedgerPage = () => {
       console.error('Error adding entry:', error);
       Swal.fire({
         icon: 'error',
-        title: '🚫 Error',
+        title: 'Error',
         text: error.response?.data?.message || 'Failed to connect to server',
         confirmButtonColor: '#ef4444'
       });
@@ -264,14 +276,14 @@ const LedgerPage = () => {
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: '🗑️ Are you sure?',
+      title: 'Are you sure?',
       text: 'This action cannot be undone!',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: '🗑️ Yes, delete it!',
-      cancelButtonText: '❌ Cancel'
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
     });
 
     if (!result.isConfirmed) return;
@@ -281,7 +293,7 @@ const LedgerPage = () => {
       if (response.data.success) {
         Swal.fire({
           icon: 'success',
-          title: '✅ Deleted!',
+          title: 'Deleted!',
           text: 'Entry deleted successfully!',
           confirmButtonColor: '#10b981'
         });
@@ -289,7 +301,7 @@ const LedgerPage = () => {
       } else {
         Swal.fire({
           icon: 'error',
-          title: '❌ Failed',
+          title: 'Failed',
           text: 'Failed to delete entry',
           confirmButtonColor: '#ef4444'
         });
@@ -298,7 +310,7 @@ const LedgerPage = () => {
       console.error('Error deleting entry:', error);
       Swal.fire({
         icon: 'error',
-        title: '🚫 Error',
+        title: 'Error',
         text: 'Failed to delete entry',
         confirmButtonColor: '#ef4444'
       });
@@ -358,11 +370,11 @@ const LedgerPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Debits</h3>
-            <p className="text-2xl font-bold text-green-600">Rs. {summary.totalDr.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-red-600">Rs. {summary.totalDr.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Credits</h3>
-            <p className="text-2xl font-bold text-red-600">Rs. {summary.totalCr.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600">Rs. {summary.totalCr.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Current Balance</h3>
@@ -399,7 +411,8 @@ const LedgerPage = () => {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📊 All Entries
+                <BarChart3 className="h-4 w-4 mr-2" />
+                All Entries
               </button>
               
               <button
@@ -482,10 +495,10 @@ const LedgerPage = () => {
                       <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
                         {entry.particulars}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 border-r border-gray-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-red-600 border-r border-gray-200">
                         {entry.dr_amount > 0 ? `Rs. ${entry.dr_amount.toLocaleString()}` : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-red-600 border-r border-gray-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 border-r border-gray-200">
                         {entry.cr_amount > 0 ? `Rs. ${entry.cr_amount.toLocaleString()}` : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-blue-600 border-r border-gray-200">
@@ -527,3 +540,6 @@ const LedgerPage = () => {
 };
 
 export default LedgerPage;
+
+
+

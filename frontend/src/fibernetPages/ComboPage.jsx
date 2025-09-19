@@ -19,7 +19,8 @@ import {
   Wifi,
   Users,
   Hash,
-  FileText
+  FileText,
+  MapPin
 } from 'lucide-react';
 
 const ComboPage = () => {
@@ -471,8 +472,9 @@ const ComboPage = () => {
                                 </div>
                               )}
                               {combo.customerAddress && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  📍 {combo.customerAddress}
+                                <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {combo.customerAddress}
                                 </div>
                               )}
                             </div>
