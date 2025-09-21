@@ -217,7 +217,7 @@ const DishhomePage = () => {
               <h4 class="font-medium text-blue-800 mb-2">Customer Information</h4>
               <p><strong>Name:</strong> ${customer.name}</p>
               <p><strong>Package:</strong> ${customer.package}</p>
-              <p><strong>Monthly Rate:</strong> Rs. ${customer.price}</p>
+              <p><strong>Total Amount:</strong> Rs. ${customer.price}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Billing Months *</label>
@@ -463,14 +463,14 @@ const DishhomePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Monthly price"
+                    placeholder="Total price"
                   />
                 </div>
 
@@ -554,7 +554,7 @@ const DishhomePage = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <div className="flex items-center">
                           <RsIcon className="h-4 w-4 mr-1" />
-                          Price
+                          Total Price
                         </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">

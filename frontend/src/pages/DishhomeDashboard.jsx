@@ -204,7 +204,7 @@ const DishhomeDashboard = () => {
               <h4 class="font-medium text-blue-800 mb-2">Customer Information</h4>
               <p><strong>Name:</strong> ${customer.name}</p>
               <p><strong>Package:</strong> ${customer.package}</p>
-              <p><strong>Monthly Rate:</strong> Rs. ${customer.price}</p>
+              <p><strong>Total Amount:</strong> Rs. ${customer.price}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Billing Months *</label>

@@ -367,23 +367,37 @@ const LedgerPage = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Debits</h3>
+            <div className="flex items-center space-x-3 mb-2">
+              <TrendingDown className="h-5 w-5 text-red-500" />
+              <h3 className="text-sm font-medium text-gray-500">Total Debits</h3>
+            </div>
             <p className="text-2xl font-bold text-red-600">Rs. {summary.totalDr.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Credits</h3>
+            <div className="flex items-center space-x-3 mb-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              <h3 className="text-sm font-medium text-gray-500">Total Credits</h3>
+            </div>
             <p className="text-2xl font-bold text-green-600">Rs. {summary.totalCr.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Current Balance</h3>
-            <p className={`text-2xl font-bold ${summary.currentBalance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              Rs. {Math.abs(summary.currentBalance).toLocaleString()}
+            <div className="flex items-center space-x-3 mb-2">
+              <DollarSign className="h-5 w-5 text-purple-500" />
+              <h3 className="text-sm font-medium text-gray-500">Profit/Loss</h3>
+            </div>
+            <p className={`text-2xl font-bold ${
+              (summary.totalCr - summary.totalDr) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {(summary.totalCr - summary.totalDr) >= 0 ? 'Profit' : 'Loss'} Rs. {Math.abs(summary.totalCr - summary.totalDr).toLocaleString()}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Entries</h3>
+            <div className="flex items-center space-x-3 mb-2">
+              <CheckCircle className="h-5 w-5 text-indigo-500" />
+              <h3 className="text-sm font-medium text-gray-500">Total Entries</h3>
+            </div>
             <p className="text-2xl font-bold text-purple-600">{summary.totalEntries}</p>
           </div>
         </div>
