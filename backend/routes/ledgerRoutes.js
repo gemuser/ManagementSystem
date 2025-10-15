@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
       SELECT 
         id,
         entry_date,
+        name,
         particulars,
         dr_amount,
         cr_amount,
@@ -24,9 +25,10 @@ router.get('/', async (req, res) => {
     const [rows] = await db.execute(query);
     
     // Recalculate running balance to ensure accuracy
+    // Business rule: credit increases balance, debit decreases balance
     let runningBalance = 0;
     const entriesWithBalance = rows.map(entry => {
-      runningBalance += parseFloat(entry.dr_amount) - parseFloat(entry.cr_amount);
+      runningBalance += parseFloat(entry.cr_amount) - parseFloat(entry.dr_amount);
       return {
         ...entry,
         dr_amount: parseFloat(entry.dr_amount),
@@ -55,7 +57,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { entry_date, particulars, dr_amount, cr_amount } = req.body;
+  const { entry_date, name, particulars, dr_amount, cr_amount } = req.body;
     
     // Validation
     if (!entry_date || !particulars) {
@@ -96,17 +98,19 @@ router.post('/', async (req, res) => {
       LIMIT 1
     `);
     
-    const lastBalance = lastEntryRows.length > 0 ? parseFloat(lastEntryRows[0].balance) : 0;
-    const newBalance = lastBalance + drAmount - crAmount;
+  const lastBalance = lastEntryRows.length > 0 ? parseFloat(lastEntryRows[0].balance) : 0;
+  // Business rule: credit increases balance, debit decreases balance
+  const newBalance = lastBalance + crAmount - drAmount;
     
     // Insert new entry
     const insertQuery = `
-      INSERT INTO ledger_entries (entry_date, particulars, dr_amount, cr_amount, balance)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO ledger_entries (entry_date, name, particulars, dr_amount, cr_amount, balance)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     
     const [result] = await db.execute(insertQuery, [
       entry_date,
+      name ? name.trim() : null,
       particulars.trim(),
       drAmount,
       crAmount,
@@ -159,9 +163,10 @@ router.get('/summary', async (req, res) => {
     const [rows] = await db.execute(query);
     const summary = rows[0];
     
-    const totalDr = parseFloat(summary.total_dr) || 0;
-    const totalCr = parseFloat(summary.total_cr) || 0;
-    const currentBalance = totalDr - totalCr;
+  const totalDr = parseFloat(summary.total_dr) || 0;
+  const totalCr = parseFloat(summary.total_cr) || 0;
+  // Business rule: current balance = total credits - total debits
+  const currentBalance = totalCr - totalDr;
     
     res.json({
       success: true,
@@ -239,11 +244,11 @@ async function recalculateAllBalances() {
     `);
     
     let runningBalance = 0;
-    
-    // Update each entry with correct balance
+
+    // Update each entry with correct balance (credit increases, debit decreases)
     for (const entry of entries) {
-      runningBalance += parseFloat(entry.dr_amount) - parseFloat(entry.cr_amount);
-      
+      runningBalance += parseFloat(entry.cr_amount) - parseFloat(entry.dr_amount);
+
       await db.execute(
         'UPDATE ledger_entries SET balance = ? WHERE id = ?',
         [runningBalance, entry.id]

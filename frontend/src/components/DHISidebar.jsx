@@ -18,7 +18,7 @@ import {
 const DHISidebar = () => {
   const links = [
     { 
-      name: "Back to Home", 
+      name: "Back", 
       path: "/", 
       icon: ArrowLeft,
       description: "Return to Services"

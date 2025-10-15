@@ -20,7 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const ComprehensiveDayBook = () => {
-  const navigate = useNavigate();
+  
   const [activeTab, setActiveTab] = useState('total');
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
@@ -67,6 +67,8 @@ const ComprehensiveDayBook = () => {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getDateRange = (filterType) => {
@@ -233,9 +235,15 @@ const ComprehensiveDayBook = () => {
                 Showing data for: <span className="font-bold">{getFilterDescription()}</span>
               </span>
             </div>
-            <span className="text-xs text-blue-600">
-              Last updated: {new Date().toLocaleTimeString()}
-            </span>
+            <div className="flex items-center space-x-3">
+              <span className="text-xs text-blue-600">Last updated: {new Date().toLocaleTimeString()}</span>
+              <button
+                onClick={() => navigate('/daybook/balance')}
+                className="px-3 py-1 bg-gray-100 rounded text-sm text-gray-800 hover:bg-gray-200"
+              >
+                Balances
+              </button>
+            </div>
           </div>
         </div>
 

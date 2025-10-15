@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import DHISidebar from '../components/DHISidebar';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
@@ -46,6 +47,7 @@ const DayBook = () => {
     comboRevenue: false,
     purchases: false
   });
+  const [balanceInfo, setBalanceInfo] = useState({ opening: 0, closing: 0, totalDr: 0, totalCr: 0 });
 
   const fetchFinancialData = useCallback(async () => {
     try {
@@ -278,6 +280,47 @@ const DayBook = () => {
       newFinancialData.totalExpenditure = newFinancialData.purchases.total;
       newFinancialData.netProfitLoss = newFinancialData.totalIncome - newFinancialData.totalExpenditure;
 
+      // --- Ledger / Balance calculations ---
+      try {
+        const ledgerRes = await axios.get('/ledger');
+  const allEntries = ledgerRes.data.data || [];
+
+        // Compute opening balance as the last balance before the selected date
+        const target = new Date(selectedDate);
+        const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+
+        const entriesBefore = allEntries.filter(e => {
+          const d = new Date(e.entry_date);
+          return d < targetStart;
+        });
+
+        let opening = 0;
+        if (entriesBefore.length > 0) {
+          const lastBefore = entriesBefore[entriesBefore.length - 1];
+          opening = parseFloat(lastBefore.balance) || 0;
+        }
+
+        // Entries exactly on target date
+        const entriesOnDate = allEntries.filter(e => {
+          const d = new Date(e.entry_date);
+          return (
+            d.getFullYear() === target.getFullYear() &&
+            d.getMonth() === target.getMonth() &&
+            d.getDate() === target.getDate()
+          );
+        });
+
+  const totalDr = entriesOnDate.reduce((s, e) => s + (parseFloat(e.dr_amount) || 0), 0);
+  const totalCr = entriesOnDate.reduce((s, e) => s + (parseFloat(e.cr_amount) || 0), 0);
+  // Use business rule: closing = opening + credit - debit
+  const closing = opening + totalCr - totalDr;
+
+  setBalanceInfo({ opening, closing, totalDr, totalCr });
+      } catch (_err) {
+        // ignore ledger errors for balance display
+        void _err;
+        setBalanceInfo({ opening: 0, closing: 0, totalDr: 0, totalCr: 0 });
+      }
       setFinancialData(newFinancialData);
     } catch (error) {
       console.error('Error fetching financial data:', error);
@@ -285,6 +328,8 @@ const DayBook = () => {
       setLoading(false);
     }
   }, [selectedDate, dateFilter]);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFinancialData();
@@ -433,6 +478,12 @@ const DayBook = () => {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
+            <button
+              onClick={() => navigate('/daybook/balance')}
+              className="flex items-center px-4 py-2 ml-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200"
+            >
+              Balances
+            </button>
           </div>
         </div>
 
@@ -479,6 +530,25 @@ const DayBook = () => {
           </div>
         ) : (
           <>
+            {/* Balance Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow-sm p-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Balance</h3>
+                  <p className="text-sm text-gray-500">Opening / Closing for {new Date(selectedDate).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Opening</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(balanceInfo.opening)}</p>
+                  <p className="text-sm text-gray-500 mt-2">Closing</p>
+                  <p className={`text-2xl font-bold ${balanceInfo.closing >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(balanceInfo.closing)}</p>
+                </div>
+              </div>
+
+              {/* Keep one placeholder column to align with subsequent cards */}
+              <div className="hidden md:block"></div>
+            </div>
+
             {/* Financial Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">

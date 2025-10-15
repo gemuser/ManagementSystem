@@ -8,6 +8,7 @@ async function createLedgerTable() {
       CREATE TABLE IF NOT EXISTS ledger_entries (
         id int NOT NULL AUTO_INCREMENT,
         entry_date date NOT NULL,
+        name varchar(255) DEFAULT NULL,
         particulars text NOT NULL,
         dr_amount decimal(12,2) DEFAULT 0.00,
         cr_amount decimal(12,2) DEFAULT 0.00,
@@ -29,10 +30,10 @@ async function createLedgerTable() {
       console.log('Inserting sample data...');
       
       const insertQuery = `
-        INSERT INTO ledger_entries (entry_date, particulars, dr_amount, cr_amount, balance) VALUES
-        ('2024-09-13', 'Opening Balance', 50000.00, 0.00, 50000.00),
-        ('2024-09-13', 'Cash Sales', 15000.00, 0.00, 65000.00),
-        ('2024-09-13', 'Office Rent', 0.00, 12000.00, 53000.00);
+        INSERT INTO ledger_entries (entry_date, name, particulars, dr_amount, cr_amount, balance) VALUES
+        ('2024-09-13', 'System', 'Opening Balance', 50000.00, 0.00, 50000.00),
+        ('2024-09-13', 'Walk-in Customer', 'Cash Sales', 15000.00, 0.00, 65000.00),
+        ('2024-09-13', 'Landlord', 'Office Rent', 0.00, 12000.00, 53000.00);
       `;
       
       await db.execute(insertQuery);

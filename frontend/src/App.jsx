@@ -10,6 +10,7 @@ import SalesHistory from './pages/SalesHistory';
 import HistoryPage from './pages/HistoryPage';
 import DayBook from './pages/DayBook';
 import ComprehensiveDayBook from './pages/ComprehensiveDayBook';
+import DayBookBalance from './pages/DayBookBalance';
 import LedgerPage from './pages/LedgerPage';
 import DishhomeDashboard from './pages/DishhomeDashboard';
 import FibernetDashboard from './pages/FibernetDashboard';
@@ -78,6 +79,12 @@ function App() {
           <Route path="/daybook" element={
             <ProtectedRoute>
               <ComprehensiveDayBook />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/daybook/balance" element={
+            <ProtectedRoute>
+              <DayBookBalance />
             </ProtectedRoute>
           } />
 

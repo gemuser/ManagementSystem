@@ -41,6 +41,7 @@ const LedgerPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     entry_date: new Date().toISOString().split('T')[0],
+    name: '',
     particulars: '',
     amount: '',
     type: 'debit'
@@ -177,6 +178,11 @@ const LedgerPage = () => {
             <input id="entry_date" type="date" value="${new Date().toISOString().split('T')[0]}" 
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Name</label>
+            <input id="entry_name" type="text" placeholder="Name" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Particulars</label>
@@ -191,14 +197,14 @@ const LedgerPage = () => {
                 <input type="radio" name="type" value="debit" checked class="text-red-600 focus:ring-red-500 mr-2">
                 <span class="text-sm font-medium text-red-700 flex items-center gap-1">
                   <TrendingDown className="h-4 w-4" />
-                  Debit (Dr)
+                  Debit
                 </span>
               </label>
               <label class="flex items-center">
                 <input type="radio" name="type" value="credit" class="text-green-600 focus:ring-green-500 mr-2">
                 <span class="text-sm font-medium text-green-700 flex items-center gap-1">
                   <TrendingUp className="h-4 w-4" />
-                  Credit (Cr)
+                  Credit
                 </span>
               </label>
             </div>
@@ -218,6 +224,7 @@ const LedgerPage = () => {
       cancelButtonColor: '#6b7280',
       preConfirm: () => {
         const entry_date = document.getElementById('entry_date').value;
+        const name = document.getElementById('entry_name').value;
         const particulars = document.getElementById('particulars').value;
         const amount = document.getElementById('amount').value;
         const type = document.querySelector('input[name="type"]:checked').value;
@@ -227,7 +234,7 @@ const LedgerPage = () => {
           return false;
         }
         
-        return { entry_date, particulars, amount, type };
+        return { entry_date, name, particulars, amount, type };
       }
     });
 
@@ -240,6 +247,7 @@ const LedgerPage = () => {
     try {
       const submitData = {
         entry_date: formValues.entry_date,
+        name: formValues.name ? formValues.name.trim() : null,
         particulars: formValues.particulars.trim(),
         dr_amount: formValues.type === 'debit' ? parseFloat(formValues.amount) : 0,
         cr_amount: formValues.type === 'credit' ? parseFloat(formValues.amount) : 0
@@ -317,6 +325,147 @@ const LedgerPage = () => {
     }
   };
 
+  // Quick Receive form (Credit)
+  const showReceiveForm = async () => {
+    const { value: values } = await Swal.fire({
+      title: 'Receive Amount',
+      html: `
+        <div class="space-y-3 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input id="q_entry_date" type="date" value="${new Date().toISOString().split('T')[0]}" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input id="q_name" type="text" placeholder="Name" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+            <input id="q_invoice" type="text" placeholder="Invoice #" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Particulars</label>
+            <input id="q_particulars" type="text" placeholder="Particulars" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
+            <input id="q_amount" type="number" step="0.01" min="0" placeholder="Amount" class="w-full swal2-input">
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Receive',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      preConfirm: () => {
+        const entry_date = document.getElementById('q_entry_date').value;
+        const name = document.getElementById('q_name').value;
+        const invoice = document.getElementById('q_invoice').value;
+        const particulars = document.getElementById('q_particulars').value;
+        const amount = document.getElementById('q_amount').value;
+        if (!entry_date || !name || !amount) {
+          Swal.showValidationMessage('Please fill Date, Name and Amount');
+          return false;
+        }
+        return { entry_date, name, invoice, particulars, amount };
+      }
+    });
+
+    if (values) {
+      await handleQuickEntrySubmit({ ...values, type: 'credit' });
+    }
+  };
+
+  // Quick Pay form (Debit)
+  const showPayForm = async () => {
+    const { value: values } = await Swal.fire({
+      title: 'Pay Amount',
+      html: `
+        <div class="space-y-3 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input id="q_entry_date_p" type="date" value="${new Date().toISOString().split('T')[0]}" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input id="q_name_p" type="text" placeholder="Name" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+            <input id="q_invoice_p" type="text" placeholder="Invoice #" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Particulars</label>
+            <input id="q_particulars_p" type="text" placeholder="Particulars" class="w-full swal2-input">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
+            <input id="q_amount_p" type="number" step="0.01" min="0" placeholder="Amount" class="w-full swal2-input">
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Pay',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      preConfirm: () => {
+        const entry_date = document.getElementById('q_entry_date_p').value;
+        const name = document.getElementById('q_name_p').value;
+        const invoice = document.getElementById('q_invoice_p').value;
+        const particulars = document.getElementById('q_particulars_p').value;
+        const amount = document.getElementById('q_amount_p').value;
+        if (!entry_date || !name || !amount) {
+          Swal.showValidationMessage('Please fill Date, Name and Amount');
+          return false;
+        }
+        return { entry_date, name, invoice, particulars, amount };
+      }
+    });
+
+    if (values) {
+      await handleQuickEntrySubmit({ ...values, type: 'debit' });
+    }
+  };
+
+  // Submit helper for quick entries
+  const handleQuickEntrySubmit = async ({ entry_date, name, invoice, particulars, amount, type }) => {
+    try {
+      const submitData = {
+        entry_date,
+        name: name ? name.trim() : null,
+        particulars: `${particulars ? particulars.trim() + ' - ' : ''}${name}${invoice ? ' (Inv: ' + invoice + ')' : ''}`,
+        dr_amount: type === 'debit' ? parseFloat(amount) : 0,
+        cr_amount: type === 'credit' ? parseFloat(amount) : 0
+      };
+
+      const response = await axios.post('/ledger', submitData);
+      if (response.data.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: `Entry ${type === 'credit' ? 'received' : 'paid'} successfully`,
+          confirmButtonColor: '#10b981'
+        });
+        fetchData();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Failed',
+          text: response.data.message || 'Failed to add entry',
+          confirmButtonColor: '#ef4444'
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting quick entry:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Failed to connect to server',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
   // Loading screen
   if (authLoading || fetchLoading) {
     return (
@@ -353,13 +502,29 @@ const LedgerPage = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={showAddEntryForm}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Entry
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={showReceiveForm}
+                className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Receive
+              </button>
+              <button
+                onClick={showPayForm}
+                className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <TrendingDown className="h-4 w-4 mr-2" />
+                Pay
+              </button>
+              <button
+                onClick={showAddEntryForm}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Entry
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -492,9 +657,10 @@ const LedgerPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Particulars</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Debit (Dr)</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Credit (Cr)</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Debit</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Credit</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -505,6 +671,9 @@ const LedgerPage = () => {
                     <tr key={entry.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
                         {new Date(entry.entry_date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                        {entry.name || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
                         {entry.particulars}

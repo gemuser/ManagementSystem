@@ -353,7 +353,7 @@ const SalesHistory = () => {
 
       // Show loading
       Swal.fire({
-        title: 'Generating VAT Bill...',
+        title: 'Generating Bill...',
         text: 'Please wait while we create your PDF document',
         allowOutsideClick: false,
         allowEscapeKey: false,
