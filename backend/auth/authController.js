@@ -5,10 +5,10 @@ const bcrypt = require('bcryptjs');
 const users = [
     {
         id: 1,
-        username: 'admin',
-        password: 'admin', // In production, this should be hashed
-        role: 'admin',
-        name: 'Administrator'
+        username: process.env.ADMIN_USERNAME,
+        password: process.env.ADMIN_PASSWORD, // In production, this should be hashed
+        role: process.env.ADMIN_ROLE,
+        name: process.env.ADMIN_NAME
     }
 ];
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import Swal from "sweetalert2";
 import ConnectionStatus from "./ConnectionStatus";
 import { 
   BarChart3, 
@@ -24,9 +25,29 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Logout Confirmation',
+      text: 'Do you really want to logout?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Logout',
+      cancelButtonText: 'No, Stay'
+    });
+
+    if (result.isConfirmed) {
+      logout();
+      navigate('/login');
+      Swal.fire({
+        icon: 'success',
+        title: 'Logged Out',
+        text: 'You have been logged out successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
   };
 
   const links = [

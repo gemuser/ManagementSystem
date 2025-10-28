@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Swal from 'sweetalert2';
 import { 
   Package, 
   Tv, 
@@ -65,9 +66,29 @@ const LandingPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Logout Confirmation',
+      text: 'Do you really want to logout?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Logout',
+      cancelButtonText: 'No, Stay'
+    });
+
+    if (result.isConfirmed) {
+      logout();
+      navigate('/');
+      Swal.fire({
+        icon: 'success',
+        title: 'Logged Out',
+        text: 'You have been logged out successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
   };
 
   return (
