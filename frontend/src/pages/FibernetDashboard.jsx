@@ -23,7 +23,8 @@ import {
   Download,
   RefreshCw,
   Signal,
-  BarChart3
+  BarChart3,
+  ArrowUp
 } from 'lucide-react';
 
 const FibernetDashboard = () => {
@@ -193,6 +194,59 @@ const FibernetDashboard = () => {
           confirmButtonColor: '#ef4444'
         });
       }
+    }
+  };
+
+  // Handle upgrade to combo
+  const handleUpgradeToCombo = async (customer) => {
+    const result = await Swal.fire({
+      title: 'Select Combo Type',
+      text: 'Choose the type of combo package for this customer',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'DTH (Digital TV)',
+      denyButtonText: 'ITV (Interactive TV)',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#f97316',
+      denyButtonColor: '#3b82f6',
+      cancelButtonColor: '#6b7280',
+    });
+
+    if (result.isConfirmed) {
+      // User selected DTH
+      navigate('/combo/dth', {
+        state: {
+          upgradeData: {
+            fibernetId: customer.customerId,
+            customerName: customer.name,
+            customerAddress: customer.address,
+            phoneNumber: customer.phoneNumber,
+            fibernetPackage: customer.package,
+            fibernetPrice: customer.price,
+            month: customer.month,
+            upgradeType: 'DTH',
+            sourceService: 'fibernet'
+          }
+        }
+      });
+    } else if (result.isDenied) {
+      // User selected ITV
+      navigate('/combo/itv', {
+        state: {
+          upgradeData: {
+            fibernetId: customer.customerId,
+            customerName: customer.name,
+            customerAddress: customer.address,
+            phoneNumber: customer.phoneNumber,
+            fibernetPackage: customer.package,
+            fibernetPrice: customer.price,
+            month: customer.month,
+            upgradeType: 'ITV',
+            sourceService: 'fibernet'
+          }
+        }
+      });
     }
   };
 
@@ -639,8 +693,15 @@ const FibernetDashboard = () => {
                             Invoice
                           </button>
                           <button
+                            onClick={() => handleUpgradeToCombo(customer)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded bg-blue-50 hover:bg-blue-100"
+                            title="Upgrade to Combo"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => handleEdit(customer)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
                             title="Edit Customer"
                           >
                             <Edit className="h-4 w-4" />

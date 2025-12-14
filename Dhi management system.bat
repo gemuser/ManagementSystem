@@ -8,11 +8,10 @@ set "BASE=%~dp0"
 powershell -WindowStyle Hidden -Command "Start-Process cmd -ArgumentList '/c cd /d \"%BASE%backend\" && npm run server' -WindowStyle Hidden"
 
 :: Start frontend silently
-powershell -WindowStyle Hidden -Command "Start-Process cmd -ArgumentList '/c cd /d \"%BASE%frontend\" && npm run dev
-' -WindowStyle Hidden"
+powershell -WindowStyle Hidden -Command "Start-Process cmd -ArgumentList '/c cd /d \"%BASE%frontend\" && npm run dev' -WindowStyle Hidden"
 
 :: Wait a short moment to ensure frontend boots
-timeout /t 1 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 :: Open the frontend in the default browser
 start "" "http://localhost:5173"

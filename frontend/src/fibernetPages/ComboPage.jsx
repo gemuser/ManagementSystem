@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from '../api/axios';
 import ComboSidebar from '../components/ComboSidebar';
 import ComboCustomerForm from '../components/ComboCustomerForm';
@@ -25,6 +25,7 @@ import {
 
 const ComboPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [combos, setCombos] = useState([]);
   const [dishhomeCustomers, setDishhomeCustomers] = useState([]);
   const [fibernetCustomers, setFibernetCustomers] = useState([]);
@@ -138,6 +139,17 @@ const ComboPage = () => {
     fetchData();
   }, []);
 
+  // Handle upgrade navigation - check if user is coming from upgrade action
+  useEffect(() => {
+    if (location.state?.upgradeData) {
+      setShowAddForm(true);
+      // Scroll to the form
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location.state]);
+
   // Handle form submission (both add and edit)
   const handleFormSubmit = async (formData) => {
     setFormLoading(true);
@@ -164,6 +176,10 @@ const ComboPage = () => {
       setEditingCombo(null);
       fetchData();
       dataRefreshEmitter.emit('dataChanged');
+      // Clear the location state after successful submission
+      if (location.state?.upgradeData) {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     } catch (err) {
       console.error('Error saving combo:', err);
       Swal.fire({
@@ -181,6 +197,10 @@ const ComboPage = () => {
   const handleFormCancel = () => {
     setShowAddForm(false);
     setEditingCombo(null);
+    // Clear the location state to prevent re-opening the form
+    if (location.state?.upgradeData) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
   };
 
   // Handle edit
@@ -362,7 +382,8 @@ const ComboPage = () => {
                 onSubmit={handleFormSubmit}
                 onCancel={handleFormCancel}
                 loading={formLoading}
-                isUpgrade={false}
+                isUpgrade={!!location.state?.upgradeData}
+                upgradeData={location.state?.upgradeData}
               />
             </div>
           )}

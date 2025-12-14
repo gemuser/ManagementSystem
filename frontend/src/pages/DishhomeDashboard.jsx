@@ -23,7 +23,8 @@ import {
   Download,
   RefreshCw,
   CreditCard,
-  BarChart3
+  BarChart3,
+  ArrowUp
 } from 'lucide-react';
 
 const DishhomeDashboard = () => {
@@ -191,6 +192,26 @@ const DishhomeDashboard = () => {
         });
       }
     }
+  };
+
+  // Handle upgrade to combo
+  const handleUpgradeToCombo = (customer) => {
+    navigate('/combo/dth', {
+      state: {
+        upgradeData: {
+          dishhomeId: customer.customerId,
+          customerName: customer.name,
+          customerAddress: customer.address,
+          phoneNumber: customer.phoneNumber,
+          dishhomePackage: customer.package,
+          dishhomePrice: customer.price,
+          month: customer.month,
+          casId: customer.casId,
+          upgradeType: 'DTH',
+          sourceService: 'dishhome'
+        }
+      }
+    });
   };
 
   // Generate invoice for DishHome customer
@@ -639,6 +660,13 @@ const DishhomeDashboard = () => {
                             title="Generate Invoice"
                           >
                             Invoice
+                          </button>
+                          <button
+                            onClick={() => handleUpgradeToCombo(customer)}
+                            className="text-purple-600 hover:text-purple-900 p-1 rounded bg-purple-50 hover:bg-purple-100"
+                            title="Upgrade to Combo"
+                          >
+                            <ArrowUp className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(customer)}

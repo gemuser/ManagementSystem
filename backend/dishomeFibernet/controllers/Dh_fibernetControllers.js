@@ -266,14 +266,14 @@ const createCustomer = async (req, res) => {
 
             const comboId = insertResult[0].insertId;
 
-                            // Remove original customer records after successful combo creation
-                if (upgradeType === 'dishhome-to-combo' && dishhomeId) {
-                    await db.execute('DELETE FROM dishhome_customers WHERE id = ?', [dishhomeId]);
-                }
-                
-                if (upgradeType === 'fibernet-to-combo' && fibernetId) {
-                    await db.execute('DELETE FROM fibernet_customers WHERE id = ?', [fibernetId]);
-                }
+            // Remove original customer records after successful combo creation
+            if (upgradeType && sourceService === 'dishhome' && dishhomeId) {
+                await connection.query('DELETE FROM dishhome WHERE customerId = ?', [dishhomeId]);
+            }
+            
+            if (upgradeType && sourceService === 'fibernet' && fibernetId) {
+                await connection.query('DELETE FROM fibernet WHERE customerId = ?', [fibernetId]);
+            }
 
             // Commit the transaction
             await connection.commit();
