@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import DishhomeSidebar from '../components/DishhomeSidebar';
+import ImprovedCustomerForm from '../components/ImprovedCustomerForm';
 import RsIcon from '../components/RsIcon';
 import Swal from 'sweetalert2';
 import { dataRefreshEmitter } from '../hooks/useDataRefresh';
@@ -29,15 +30,7 @@ const DishhomePage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    phoneNumber: '',
-    status: 1,
-    package: '',
-    address: '',
-    price: '',
-    month: ''
-  });
+  const [formLoading, setFormLoading] = useState(false);
 
   // Filter customers based on search
   useEffect(() => {
@@ -75,39 +68,19 @@ const DishhomePage = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.name.trim() || !formData.phoneNumber.trim() || !formData.package.trim() || 
-        !formData.address.trim() || !formData.price || !formData.month.trim()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Missing Information',
-        text: 'Please fill in all fields',
-        confirmButtonColor: '#f59e0b'
-      });
-      return;
-    }
-
-    if (parseFloat(formData.price) <= 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Invalid Price',
-        text: 'Price must be greater than 0',
-        confirmButtonColor: '#f59e0b'
-      });
-      return;
-    }
-
+  const handleFormSubmit = async (formData) => {
     try {
+      setFormLoading(true);
+      
       if (editingCustomer) {
         await axios.put(`/dishhome/update/${editingCustomer.customerId}`, formData);
         Swal.fire({
           icon: 'success',
           title: 'Customer Updated!',
           text: 'Customer information has been updated successfully.',
-          confirmButtonColor: '#10b981'
+          confirmButtonColor: '#10b981',
+          timer: 2000,
+          showConfirmButton: false
         });
       } else {
         await axios.post('/dishhome/create', formData);
@@ -115,19 +88,12 @@ const DishhomePage = () => {
           icon: 'success',
           title: 'Customer Added!',
           text: 'New dishhome customer has been added successfully.',
-          confirmButtonColor: '#10b981'
+          confirmButtonColor: '#10b981',
+          timer: 2000,
+          showConfirmButton: false
         });
       }
 
-      setFormData({
-        name: '',
-        phoneNumber: '',
-        status: 1,
-        package: '',
-        address: '',
-        price: '',
-        month: ''
-      });
       setShowAddForm(false);
       setEditingCustomer(null);
       getCustomers();
@@ -140,22 +106,21 @@ const DishhomePage = () => {
         text: err.response?.data?.message || 'Failed to save customer. Please try again.',
         confirmButtonColor: '#ef4444'
       });
+    } finally {
+      setFormLoading(false);
     }
   };
 
   // Handle edit
   const handleEdit = (customer) => {
-    setFormData({
-      name: customer.name,
-      phoneNumber: customer.phoneNumber,
-      status: customer.status,
-      package: customer.package,
-      address: customer.address,
-      price: customer.price.toString(),
-      month: customer.month
-    });
     setEditingCustomer(customer);
     setShowAddForm(true);
+  };
+
+  // Handle cancel
+  const handleCancel = () => {
+    setShowAddForm(false);
+    setEditingCustomer(null);
   };
 
   // Handle delete
@@ -211,21 +176,6 @@ const DishhomePage = () => {
         }
       }
     });
-  };
-
-  // Cancel form
-  const handleCancel = () => {
-    setFormData({
-      name: '',
-      phoneNumber: '',
-      status: 1,
-      package: '',
-      address: '',
-      price: '',
-      month: ''
-    });
-    setShowAddForm(false);
-    setEditingCustomer(null);
   };
 
   // Generate invoice for DishHome customer
@@ -421,118 +371,20 @@ const DishhomePage = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
-        </div>          {/* Add/Edit Form */}
-          {showAddForm && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
-              </h2>
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Customer name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Phone number"
-                  />
-                </div>
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value={1}>Active</option>
-                    <option value={0}>Inactive</option>
-                  </select>
-                </div>
+        {/* Add/Edit Form */}
+        {showAddForm && (
+          <ImprovedCustomerForm
+            onSubmit={handleFormSubmit}
+            onCancel={handleCancel}
+            initialData={editingCustomer}
+            serviceType="dishhome"
+            loading={formLoading}
+          />
+        )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Package</label>
-                  <input
-                    type="text"
-                    value={formData.package}
-                    onChange={(e) => setFormData({...formData, package: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Package type"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                  <textarea
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Customer address"
-                    rows="2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Total price"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Month</label>
-                  <input
-                    type="month"
-                    value={formData.month}
-                    onChange={(e) => setFormData({...formData, month: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Select month"
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    {formData.month ? 
-                      `Selected: ${new Date(formData.month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` : 
-                      'Please select a service month'
-                    }
-                  </div>
-                </div>
-
-                <div className="md:col-span-2 flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    {editingCustomer ? 'Update Customer' : 'Add Customer'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Customers Table */}
+        {/* Customers Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -632,18 +484,19 @@ const DishhomePage = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
                             <button
+                              onClick={() => handleUpgradeToCombo(customer)}
+                              className="text-green-600 hover:text-green-900 px-3 py-1 rounded bg-green-50 hover:bg-green-100 text-xs font-semibold flex items-center gap-1"
+                              title="Upgrade to Combo"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                              Upgrade
+                            </button>
+                            <button
                               onClick={() => generateInvoice(customer)}
                               className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-xs font-medium"
                               title="Generate Invoice"
                             >
                               Invoice
-                            </button>
-                            <button
-                              onClick={() => handleUpgradeToCombo(customer)}
-                              className="text-green-600 hover:text-green-900 p-1 rounded bg-green-50 hover:bg-green-100"
-                              title="Upgrade to Combo"
-                            >
-                              <ArrowUp className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleEdit(customer)}

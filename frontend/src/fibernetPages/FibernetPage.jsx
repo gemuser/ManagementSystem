@@ -671,18 +671,19 @@ const FibernetPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end space-x-2">
                             <button
+                              onClick={() => handleUpgradeToCombo(customer)}
+                              className="text-green-600 hover:text-green-900 px-3 py-1 rounded bg-green-50 hover:bg-green-100 text-xs font-semibold flex items-center gap-1"
+                              title="Upgrade to Combo"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                              Upgrade
+                            </button>
+                            <button
                               onClick={() => generateInvoice(customer)}
                               className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-xs font-medium"
                               title="Generate Invoice"
                             >
                               Invoice
-                            </button>
-                            <button
-                              onClick={() => handleUpgradeToCombo(customer)}
-                              className="text-green-600 hover:text-green-900 p-1 rounded bg-green-50 hover:bg-green-100"
-                              title="Upgrade to Combo"
-                            >
-                              <ArrowUp className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleEdit(customer)}

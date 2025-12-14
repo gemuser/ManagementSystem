@@ -47,8 +47,11 @@ const ImprovedCustomerForm = ({
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.customerId.trim()) newErrors.customerId = 'Customer ID is required';
-    if (formData.customerId && !/^[a-zA-Z0-9]+$/.test(formData.customerId.trim())) {
+    // CustomerId is only required when editing, optional when adding new
+    if (isEditing && !formData.customerId.trim()) {
+      newErrors.customerId = 'Customer ID is required';
+    }
+    if (formData.customerId && formData.customerId.trim() && !/^[a-zA-Z0-9]+$/.test(formData.customerId.trim())) {
       newErrors.customerId = 'Customer ID must contain only letters and numbers';
     }
     if (!formData.name.trim()) newErrors.name = 'Name is required';
@@ -160,7 +163,8 @@ const ImprovedCustomerForm = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Hash className="h-4 w-4 inline mr-1" />
-              Customer ID *
+              Customer ID {isEditing && '*'}
+              {!isEditing && <span className="text-gray-500 text-xs ml-1">(Optional - auto-generated if left empty)</span>}
             </label>
             <div className="flex">
               <input
@@ -170,7 +174,7 @@ const ImprovedCustomerForm = ({
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                   errors.customerId ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 }`}
-                placeholder="Enter customer ID manually"
+                placeholder={isEditing ? "Customer ID" : "Leave empty for auto-generation"}
                 disabled={isEditing} // Disable when editing
               />
             </div>

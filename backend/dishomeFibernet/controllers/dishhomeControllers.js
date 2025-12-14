@@ -30,8 +30,9 @@ const createCustomer = async (req, res) => {
             });
         }
 
-        // Validate price field
-        if (isNaN(parseFloat(price))) {
+        // Validate and parse price field
+        const priceNum = parseFloat(price);
+        if (isNaN(priceNum)) {
             return res.status(400).send({
                 success: false,
                 message: 'Price must be a valid number',
@@ -64,12 +65,12 @@ const createCustomer = async (req, res) => {
         let query, params;
         if (customerId && parseInt(customerId) <= 2147483647) {
             // Use provided customerId if within range
-            query = 'INSERT INTO dishhome (customerId, name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?,?)';
-            params = [parseInt(customerId), name, phoneNumber, status, packageType, address, price, month, finalCasId];
+            query = 'INSERT INTO dishhome (customerId, name, phoneNumber, status, package, address, price, month, casId, category) VALUES (?,?,?,?,?,?,?,?,?,?)';
+            params = [parseInt(customerId), name, phoneNumber, parseInt(status), packageType, address, Math.round(priceNum), month, finalCasId, 'dishhome'];
         } else {
             // Auto-generate customerId
-            query = 'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month, casId) VALUES (?,?,?,?,?,?,?,?)';
-            params = [name, phoneNumber, status, packageType, address, price, month, finalCasId];
+            query = 'INSERT INTO dishhome (name, phoneNumber, status, package, address, price, month, casId, category) VALUES (?,?,?,?,?,?,?,?,?)';
+            params = [name, phoneNumber, parseInt(status), packageType, address, Math.round(priceNum), month, finalCasId, 'dishhome'];
         }
 
         const [result] = await db.query(query, params);
@@ -112,12 +113,21 @@ const updateCustomer = async (req, res) => {
             });
         }
 
+        // Validate and parse price field
+        const priceNum = parseFloat(price);
+        if (isNaN(priceNum)) {
+            return res.status(400).send({
+                success: false,
+                message: 'Price must be a valid number',
+            });
+        }
+
         // Generate CAS ID if not provided
         const finalCasId = casId || `CAS-${id}-${Date.now()}`;
 
         const data = await db.query(
-            'UPDATE dishhome SET name = ?, phoneNumber = ?, status = ?, package = ?, address = ?, price = ?, month = ?, casId = ? WHERE customerId = ?',
-            [name, phoneNumber, status, packageType, address, price, month, finalCasId, id]
+            'UPDATE dishhome SET name = ?, phoneNumber = ?, status = ?, package = ?, address = ?, price = ?, month = ?, casId = ?, category = ? WHERE customerId = ?',
+            [name, phoneNumber, parseInt(status), packageType, address, Math.round(priceNum), month, finalCasId, 'dishhome', id]
         );
 
         if (data[0].affectedRows === 0) {
